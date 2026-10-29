@@ -153,15 +153,37 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
             traceback.print_exc()
 
     def _show_card_popup(self):
-        # 已在显示则不重复创建
-        if self._popup is not None and self._popup.IsShown():
-            return
-        if self._popup is not None:
+        """每次右键都重建卡片。
+
+        坑（实测踩过）：卡片 dismiss 后 C++ 对象已销毁，但 Python 包装器
+        还被 self._popup 引用着。此时调用 self._popup.IsShown() 会抛
+        RuntimeError: wrapped C/C++ object ... has been deleted，
+        表现就是「第一次右键能弹，之后每次右键都静默失灵」。
+        所以先把引用摘下来，再用 bool()（wxPython 对已销毁窗口返回 False）
+        + try/except 双重判断。
+        """
+        old = self._popup
+        self._popup = None
+
+        if old is not None:
+            alive = False
             try:
-                self._popup.Destroy()
+                alive = bool(old) and old.IsShown()
+            except RuntimeError:
+                alive = False
+            except Exception:
+                alive = False
+
+            if alive:
+                self._popup = old       # 已经在显示，保持原样
+                return
+
+            try:
+                if bool(old):
+                    old.Destroy()
             except Exception:
                 pass
-            self._popup = None
+
         try:
             popup = TrayCardPopup(self.engine, {
                 "dashboard": self._toggle_dashboard,
@@ -172,6 +194,7 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
         except Exception as e:
             import traceback
             print(f"[Tray] 弹窗创建异常: {e}")
+            traceback.print_exc()
             traceback.print_exc()
 
     def on_left_click(self, event):
