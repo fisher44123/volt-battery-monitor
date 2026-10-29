@@ -1,0 +1,41 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── PyInstaller 产物 ──
+build/
+dist/
+*.spec.bak
+
+# ── 运行时数据（每台机器不同，不入库）──
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/volt.log
+data/volt.log.*
+data/battery_cache.json
+data/battery_cache.json.tmp
+data/settings.json
+
+# ── 归档区：历史调研残留，保留在本地但不入库 ──
+_archive/
+
+# ── 编辑器 / 工具目录 ──
+.vscode/
+.idea/
+.trae/
+.workbuddy/
+.codex/
+.codebuddy/
+.reasonix/
+.codegraph/
+_temp_asar/
+node_modules/
+scratch/
+proxy_config/
+
+.DS_Store
+Thumbs.db

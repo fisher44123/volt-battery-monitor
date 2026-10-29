@@ -1,0 +1,16 @@
+{
+  "id": "mchose_g3v2",
+  "name": "迈从 G3 V2 无线鼠标",
+  "device_type": "mouse",
+  "vendor_id": "0x3837",
+  "product_ids": [
+    "0x4245",
+    "0x100A",
+    "0x4018"
+  ],
+  "usage_page": "0xFF01",
+  "usage": "0x0010",
+  "protocol": "yjx",
+  "enabled": true,
+  "description": "迈从 G3 V2 双模/三模无线鼠标（YJX-CHIP 方案）"
+}

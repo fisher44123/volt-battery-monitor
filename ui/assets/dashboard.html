@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Volt 外设控制中心</title>
+<style>
+/* ═════════════════════════════════════════════════════════════════
+ * Volt 2.0 现代桌面外设美学设计规范 (基于罗技 OMM + 苹果/WinUI 3 融合质感)
+ * ═════════════════════════════════════════════════════════════════ */
+:root {
+    /* 核心背景与层级 (高质感现代科技白与深邃光影) */
+    --v-bg-page: #EDF2F7;
+    --v-bg-card: rgba(255, 255, 255, 0.95);
+    --v-bg-card-hover: rgba(245, 248, 253, 0.98);
+    --v-bg-card-sub: rgba(241, 245, 250, 0.85);
+    
+    /* 品牌主色系 (外设深邃科技蓝) */
+    --v-primary: #0053E2;
+    --v-primary-hover: #0043B8;
+    --v-primary-light: #EBF3FF;
+    --v-primary-border: #BCD7FF;
+    
+    /* 状态指示色 */
+    --v-success: #059669;
+    --v-success-bg: #ECFDF5;
+    --v-success-border: #A7F3D0;
+    
+    --v-warning: #D97706;
+    --v-warning-bg: #FFFBEB;
+    --v-warning-border: #FDE68A;
+    
+    --v-danger: #DC2626;
+    --v-danger-bg: #FEF2F2;
+    --v-danger-border: #FECACA;
+    
+    /* 文字层级阶梯 */
+    --v-text-title: #0A0F1D;
+    --v-text-body: #1E293B;
+    --v-text-muted: #64748B;
+    --v-text-faint: #94A3B8;
+    
+    /* 结构与光影 */
+    --v-border: rgba(219, 227, 238, 0.9);
+    --v-border-subtle: rgba(235, 240, 248, 0.8);
+    --v-radius-sm: 6px;
+    --v-radius-md: 10px;
+    --v-radius-lg: 14px;
+    --v-radius-pill: 9999px;
+    
+    /* 柔和漫反射环境光阴影 */
+    --v-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    --v-shadow-md: 0 6px 20px -3px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+    --v-shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #EEF2F7 0%, #E8EEF5 100%);
+    color: var(--v-text-body);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", sans-serif;
+    font-size: 13px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ══════════ 整体应用框架 ══════════ */
+.app {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* ────────── 左侧宽抽屉硬件导轨 (Apple Sequoia 风格) ────────── */
+.sidebar {
+    width: 236px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-right: 1px solid var(--v-border);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 14px 14px;
+    gap: 10px;
+    z-index: 10;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 4px 6px;
+    margin-bottom: 2px;
+}
+.sidebar-logo {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 83, 226, 0.2);
+    overflow: hidden;
+    background: #000;
+    flex-shrink: 0;
+}
+.sidebar-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sidebar-brand-text { display: flex; flex-direction: column; }
+.sidebar-brand-name {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--v-text-title);
+    line-height: 1.2;
+}
+.sidebar-brand-sub {
+    font-size: 10.5px;
+    color: var(--v-text-muted);
+    font-weight: 500;
+}
+
+.sidebar-section-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--v-text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 6px 4px 2px;
+}
+
+/* 宽设备大卡片 */
+.nav-item {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    gap: 7px;
+}
+.nav-item:hover {
+    background: #ffffff;
+    border-color: var(--v-primary-border);
+    transform: translateY(-1px);
+    box-shadow: var(--v-shadow-sm);
+}
+.nav-item.active {
+    background: #ffffff;
+    border-color: rgba(0, 83, 226, 0.35);
+    box-shadow: 0 4px 16px rgba(0, 83, 226, 0.1);
+}
+.nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3.5px;
+    border-radius: 0 4px 4px 0;
+    background: var(--v-primary);
+    box-shadow: 0 0 8px rgba(0, 83, 226, 0.6);
+}
+.nav-item-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+.nav-thumb-wrap {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    border: 1px solid var(--v-border-subtle);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.nav-thumb-wrap img {
+    width: 30px; height: 30px;
+    object-fit: contain;
+}
+.nav-info-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+.nav-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--v-text-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.nav-status-sub {
+    font-size: 10px;
+    color: var(--v-text-muted);
+    margin-top: 1px;
+}
+.nav-pct {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: var(--v-radius-pill);
+    background: #F1F5F9;
+    color: var(--v-text-title);
+    font-variant-numeric: tabular-nums;
+}
+.nav-item.active .nav-pct {
+    background: var(--v-primary-light);
+    color: var(--v-primary);
+}
+
+/* 内嵌小能量条 */
+.nav-mini-bar {
+    width: 100%;
+    height: 4px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.nav-mini-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--v-primary);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.sidebar-spacer { flex: 1; }
+
+.sidebar-btn-add {
+    width: 100%;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px dashed #CBD5E1;
+    background: transparent;
+    color: var(--v-text-muted);
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    transition: all 0.18s;
+}
+.sidebar-btn-add:hover {
+    border-color: var(--v-primary);
+    color: var(--v-primary);
+    background: var(--v-primary-light);
+}
+.sidebar-btn-add svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* ────────── 主视窗内容区 ────────── */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 22px 10px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--v-border) transparent;
+}
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-thumb { background: var(--v-border); border-radius: 4px; }
+
+/* 顶栏 Header */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.app-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+.app-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--v-text-title);
+    letter-spacing: -0.3px;
+}
+.app-subtitle {
+    font-size: 12px;
+    color: var(--v-text-muted);
+    font-weight: 500;
+}
+.mode-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--v-primary);
+    background: var(--v-primary-light);
+    border: 1px solid var(--v-primary-border);
+    padding: 2.5px 10px;
+    border-radius: var(--v-radius-pill);
+    letter-spacing: 0.3px;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.quick-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--v-text-muted);
+    background: var(--v-bg-card);
+    border: 1px solid var(--v-border);
+    padding: 4px 10px;
+    border-radius: var(--v-radius-pill);
+    box-shadow: var(--v-shadow-sm);
+}
+.quick-badge .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--v-success);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* ══════════ Hero 一体化悬浮全息工作台 ══════════ */
+.hero-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
+    padding: 16px 22px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+}
+.hero-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #0053E2 0%, #0091FF 50%, transparent 100%);
+}
+
+/* 顶部标题与状态微标栏 */
+.hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 8px;
+}
+.hero-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.dev-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--v-text-title);
+    letter-spacing: -0.3px;
+}
+
+/* 状态药丸 (Chip) */
+.conn-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2.5px 10px;
+    border-radius: var(--v-radius-pill);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.conn-chip .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+}
+.conn-chip.online {
+    background: var(--v-success-bg);
+    color: var(--v-success);
+    border-color: var(--v-success-border);
+}
+.conn-chip.online .dot { background: var(--v-success); }
+.conn-chip.charging {
+    background: var(--v-primary-light);
+    color: var(--v-primary);
+    border-color: var(--v-primary-border);
+}
+.conn-chip.charging .dot {
+    background: var(--v-primary);
+    animation: dotPulse 1.2s infinite;
+}
+.conn-chip.offline {
+    background: #F1F5F9;
+    color: var(--v-text-muted);
+    border-color: #CBD5E1;
+}
+.conn-chip.offline .dot { background: #94A3B8; }
+
+@keyframes dotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(1.3); }
+}
+
+/* 充电动效气泡标签 */
+.charging-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--v-success);
+    background: var(--v-success-bg);
+    border: 1px solid var(--v-success-border);
+    padding: 2.5px 9px;
+    border-radius: var(--v-radius-pill);
+    animation: tagPulse 2s infinite ease-in-out;
+}
+.charging-tag svg { width: 12px; height: 12px; fill: currentColor; }
+@keyframes tagPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); }
+    50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+}
+
+/* 一体化工作台布局：打破左右生硬方框，形成空间纵深 */
+.hero-stage-hull {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 148px;
+    position: relative;
+    padding: 4px 6px;
+    box-sizing: border-box;
+}
+
+/* 左侧：360°精密环形全息展台 */
+.hologram-stage-wrap {
+    flex: 1.1;
+    height: 148px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    user-select: none;
+}
+.hologram-ring-outer {
+    position: absolute;
+    width: 154px;
+    height: 154px;
+    border-radius: 50%;
+    border: 1px dashed rgba(0, 83, 226, 0.25);
+    animation: ringRotate 25s linear infinite;
+    pointer-events: none;
+}
+.hologram-ring-inner {
+    position: absolute;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 83, 226, 0.08) 0%, rgba(240, 246, 255, 0.4) 60%, transparent 80%);
+    border: 1px solid rgba(0, 83, 226, 0.15);
+    pointer-events: none;
+}
+@keyframes ringRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.stage-pedestal {
+    position: absolute;
+    bottom: 8px;
+    width: 130px;
+    height: 16px;
+    background: radial-gradient(ellipse at center, rgba(0, 83, 226, 0.3) 0%, rgba(0, 140, 255, 0.1) 50%, transparent 75%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.hero-stage-hull img {
+    max-height: 128px;
+    max-width: 90%;
+    object-fit: contain;
+    z-index: 2;
+    filter: drop-shadow(0 12px 24px rgba(0, 60, 180, 0.15));
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hero-stage-hull img.offline {
+    filter: grayscale(0.95) opacity(0.4) drop-shadow(0 2px 6px rgba(15, 23, 42, 0.05));
+}
+
+/* 右侧：高精度数字电量与续航预测晶片 */
+.hero-dashboard-core {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 24px;
+    border-left: 1px solid rgba(226, 232, 240, 0.7);
+    min-width: 0;
+}
+
+.batt-figure-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+.batt-num {
+    font-size: 52px;
+    font-weight: 300;
+    color: var(--v-text-title);
+    line-height: 1;
+    letter-spacing: -1.5px;
+    font-variant-numeric: tabular-nums;
+}
+.batt-num .pct {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--v-text-muted);
+    letter-spacing: normal;
+    margin-left: 3px;
+}
+.batt-num.placeholder {
+    color: var(--v-text-faint);
+    font-weight: 400;
+}
+
+/* 现代圆角充能能量条 (含呼吸流光微动效) */
+.batt-bar-track {
+    width: 100%;
+    height: 9px;
+    background: #E2E8F0;
+    border-radius: var(--v-radius-pill);
+    overflow: hidden;
+    margin: 10px 0 8px;
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.batt-bar-fill {
+    height: 100%;
+    border-radius: var(--v-radius-pill);
+    width: 0%;
+    background: linear-gradient(90deg, #0053E2, #0088FF);
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 10px rgba(0, 83, 226, 0.4);
+}
+.batt-bar-fill.mid {
+    background: linear-gradient(90deg, #F59E0B, #FBBF24);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+.batt-bar-fill.low {
+    background: linear-gradient(90deg, #EF4444, #F87171);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+.batt-bar-fill.charging {
+    background: linear-gradient(90deg, #059669, #10B981, #34D399, #059669);
+    background-size: 200% 100%;
+    animation: shimmerFlow 1.8s infinite linear;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.55);
+}
+@keyframes shimmerFlow {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* 预计剩余可用时间展示卡 (极简现代晶片) */
+.est-time-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F8FAFC;
+    border: 1px solid var(--v-border-subtle);
+    border-radius: 10px;
+    padding: 6px 12px;
+    margin-top: 4px;
+    min-height: 40px;
+    box-sizing: border-box;
+}
+.est-time-chip svg {
+    width: 16px; height: 16px;
+    fill: var(--v-primary);
+    flex-shrink: 0;
+}
+.est-time-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+.est-time-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--v-text-title);
+    line-height: 1.2;
+}
+.est-time-sub {
+    font-size: 10px;
+    color: var(--v-text-muted);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ══════════ 一体化示波监控面板 ══════════ */
+.chart-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
+    padding: 14px 18px 12px;
+    margin-bottom: 12px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 顶行：标题与时间窗切换器 */
+.chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+.chart-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.chart-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--v-text-title);
+    letter-spacing: -0.2px;
+}
+.chart-window-tabs {
+    display: flex;
+    gap: 2px;
+    background: #F1F5F9;
+    padding: 2.5px;
+    border-radius: var(--v-radius-pill);
+    border: 1px solid var(--v-border-subtle);
+}
+.chart-tab {
+    background: transparent;
+    border: none;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--v-text-muted);
+    padding: 3px 10px;
+    border-radius: var(--v-radius-pill);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.chart-tab.active {
+    background: #FFFFFF;
+    color: var(--v-primary);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* 内嵌式三连高能指标胶囊栏 */
+.chart-metrics-capsule-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    background: #F8FAFC;
+    border: 1px solid var(--v-border-subtle);
+    border-radius: 12px;
+    padding: 8px 12px;
+}
+.metric-capsule-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.metric-capsule-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: #FFFFFF;
+    border: 1px solid var(--v-border-subtle);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--v-primary);
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.metric-capsule-icon svg { width: 14px; height: 14px; fill: currentColor; }
+.metric-capsule-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.metric-capsule-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--v-text-muted);
+}
+.metric-capsule-val {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--v-text-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+.metric-capsule-sub {
+    font-size: 9.5px;
+    color: var(--v-text-faint);
+    line-height: 1.2;
+}
+
+/* ────────── 平滑折线趋势图 ────────── */
+.chart-card {
+    background: var(--v-bg-card);
+    border: 1px solid var(--v-border);
+    border-radius: var(--v-radius-lg);
+    box-shadow: var(--v-shadow-sm);
+    padding: 10px 14px 8px;
+    margin-bottom: 10px;
+    position: relative;
+}
+.chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.chart-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.chart-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--v-text-title);
+}
+.chart-window-tabs {
+    display: flex;
+    gap: 3px;
+    background: var(--v-bg-card-sub);
+    padding: 2px;
+    border-radius: var(--v-radius-pill);
+    border: 1px solid var(--v-border-subtle);
+}
+.chart-tab {
+    background: transparent;
+    border: none;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--v-text-muted);
+    padding: 2.5px 8px;
+    border-radius: var(--v-radius-pill);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.chart-tab.active {
+    background: #ffffff;
+    color: var(--v-primary);
+    box-shadow: var(--v-shadow-sm);
+}
+
+.chart-body-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    height: 96px;
+    position: relative;
+}
+.chart-y-axis {
+    width: 32px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94A3B8;
+    text-align: right;
+    padding: 4px 6px 4px 0;
+    user-select: none;
+    line-height: 1;
+}
+.chart-plot-area {
+    flex: 1;
+    position: relative;
+    height: 100%;
+    min-width: 0;
+    cursor: crosshair;
+}
+.chart-svg-wrap {
+    width: 100%;
+    height: 100%;
+}
+.chart-svg-wrap svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+.svg-grid line {
+    stroke: #E2E8F0;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    stroke-opacity: 0.8;
+}
+.svg-area {
+    fill: url(#chartGrad);
+}
+.svg-line {
+    fill: none;
+    stroke: var(--v-primary);
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 2px 6px rgba(0, 83, 226, 0.35));
+}
+.svg-dots circle {
+    fill: #ffffff;
+    stroke: var(--v-primary);
+    stroke-width: 2;
+    cursor: pointer;
+    transition: r 0.15s, fill 0.15s;
+}
+.svg-dots circle:hover, .svg-dots circle.active-snap {
+    r: 5.5;
+    fill: var(--v-primary);
+    stroke: #ffffff;
+    stroke-width: 2.5;
+}
+
+/* 浮动十字准星与 Tooltip */
+.chart-tooltip {
+    position: absolute;
+    top: 6px;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #BFDBFE;
+    border-radius: 8px;
+    padding: 5px 10px;
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.12), 0 2px 6px rgba(15, 23, 42, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transform: translateX(-50%);
+    transition: opacity 0.12s ease;
+    z-index: 50;
+    white-space: nowrap;
+}
+.tooltip-time {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #64748B;
+}
+.tooltip-val-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.tooltip-val {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0066FF;
+    letter-spacing: -0.3px;
+}
+.tooltip-badge {
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #EFF6FF;
+    color: #0066FF;
+}
+.tooltip-badge.charging {
+    background: #ECFDF5;
+    color: #10B981;
+}
+
+.chart-x-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--v-text-faint);
+    margin-top: 4px;
+    margin-left: 38px;
+    padding: 0 4px;
+    user-select: none;
+}
+
+/* ────────── 底部操作控制栏 ────────── */
+.bottom-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 2px;
+    flex-shrink: 0;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--v-radius-md);
+    cursor: pointer;
+    transition: all 0.16s ease;
+    border: 1px solid transparent;
+}
+.btn svg { width: 13px; height: 13px; fill: currentColor; }
+
+.btn-primary {
+    background: var(--v-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 102, 255, 0.25);
+}
+.btn-primary:hover {
+    background: var(--v-primary-hover);
+    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.35);
+}
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-ghost {
+    background: var(--v-bg-card);
+    color: var(--v-text-body);
+    border-color: var(--v-border);
+    box-shadow: var(--v-shadow-sm);
+}
+.btn-ghost:hover {
+    background: var(--v-bg-card-hover);
+    border-color: #CBD5E1;
+}
+.btn-ghost:active { transform: scale(0.98); }
+
+.btn-spacer { flex: 1; }
+
+/* 现代药丸形开机自启开关 (Toggle) */
+.toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--v-text-muted);
+}
+.toggle-switch {
+    width: 36px; height: 20px;
+    background: #CBD5E1;
+    border-radius: var(--v-radius-pill);
+    position: relative;
+    transition: background 0.2s;
+}
+.toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.toggle-wrap input { display: none; }
+.toggle-wrap input:checked + .toggle-switch {
+    background: var(--v-primary);
+}
+.toggle-wrap input:checked + .toggle-switch::after {
+    transform: translateX(16px);
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+    <!-- ══════════ 左侧设备宽抽屉卡片导轨 ══════════ -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">
+                <img src="app_logo.png" alt="Volt">
+            </div>
+            <div class="sidebar-brand-text">
+                <span class="sidebar-brand-name">Volt</span>
+                <span class="sidebar-brand-sub">外设电量中心</span>
+            </div>
+        </div>
+
+        <div class="sidebar-section-title">已配对外设</div>
+
+        <!-- 键盘设备大卡片 (tabK98) -->
+        <div class="nav-item active" id="tabK98" onclick="switchDevice('lingbao_k98')">
+            <div class="nav-item-top">
+                <div class="nav-thumb-wrap">
+                    <img src="dev_keyboard.png" alt="键盘" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%230053e2%22 d=%22M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z%22/></svg>'">
+                </div>
+                <div class="nav-info-wrap">
+                    <span class="nav-label">凌豹 K98</span>
+                    <span class="nav-status-sub" id="tabStatusK98">2.4G 接收器已连接</span>
+                </div>
+                <span class="nav-pct" id="tabPctK98">--</span>
+            </div>
+            <div class="nav-mini-bar">
+                <div class="nav-mini-fill" id="tabMiniFillK98"></div>
+            </div>
+        </div>
+
+        <!-- 鼠标设备大卡片 (tabG3) -->
+        <div class="nav-item" id="tabG3" onclick="switchDevice('mchose_g3v2')">
+            <div class="nav-item-top">
+                <div class="nav-thumb-wrap">
+                    <img src="dev_mouse.png" alt="鼠标" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%230053e2%22 d=%22M13 1.07V9h7c-.57-4.47-4.14-7.93-7-7.93zM4 15c0 4.42 3.58 8 8 8s8-3.58 8-8v-4H4v4zm7-13.93C8.14 1.07 4.57 4.53 4 9h7V1.07z%22/></svg>'">
+                </div>
+                <div class="nav-info-wrap">
+                    <span class="nav-label">迈从 G3 V2</span>
+                    <span class="nav-status-sub" id="tabStatusG3">待唤醒刷新</span>
+                </div>
+                <span class="nav-pct" id="tabPctG3">--</span>
+            </div>
+            <div class="nav-mini-bar">
+                <div class="nav-mini-fill" id="tabMiniFillG3"></div>
+            </div>
+        </div>
+
+        <div class="sidebar-spacer"></div>
+
+        <!-- 底部添加外设药丸按钮 -->
+        <button class="sidebar-btn-add" title="添加或嗅探新外设" onclick="sendMsg('add_device')">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>嗅探并添加新外设</span>
+        </button>
+    </aside>
+
+    <!-- ══════════ 主功能工作区 ══════════ -->
+    <main class="main">
+        <!-- 顶栏区域 -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <div class="app-title-group">
+                    <h1 class="app-title">外设电量中心</h1>
+                    <span class="app-subtitle">实时硬件链路监控</span>
+                </div>
+                <span class="mode-tag">2.4G 接收器模式</span>
+            </div>
+            <div class="topbar-right">
+                <div class="quick-badge">
+                    <span class="pulse-dot"></span>
+                    <span>双模并发监控中</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ══════════ Hero 一体化悬浮全息工作台 ══════════ -->
+        <section class="hero-card">
+            <div class="hero-header">
+                <div class="hero-title-wrap">
+                    <span class="dev-name" id="heroDevName">凌豹 K98 机械键盘</span>
+                    <span class="conn-chip online" id="heroConnStatus">
+                        <span class="dot"></span>
+                        <span>在线</span>
+                    </span>
+                    <span class="charging-tag" id="heroChgTag" style="display:none;">
+                        <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                        <span>快速充电中</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="hero-stage-hull">
+                <!-- 中央 360°精密全息动态光环展台 -->
+                <div class="hologram-stage-wrap">
+                    <div class="hologram-ring-outer"></div>
+                    <div class="hologram-ring-inner"></div>
+                    <div class="stage-pedestal"></div>
+                    <img id="heroRenderImg" src="dev_keyboard.png" alt="外设图">
+                </div>
+
+                <!-- 右侧精密仪表舱：大电量 + 充能柱 + 续航晶片 -->
+                <div class="hero-dashboard-core">
+                    <div class="batt-figure-row">
+                        <span class="batt-num" id="heroBattNum">--<span class="pct">%</span></span>
+                    </div>
+
+                    <!-- 动态平滑充能条 (heroStripFill) -->
+                    <div class="batt-bar-track">
+                        <div class="batt-bar-fill" id="heroStripFill"></div>
+                    </div>
+
+                    <!-- 预计剩余可用时间卡片 (estHoursDisplay) -->
+                    <div class="est-time-chip">
+                        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                        <div class="est-time-info">
+                            <span class="est-time-val" id="estHoursDisplay">计算剩余续航中...</span>
+                            <span class="est-time-sub" id="estHoursSub">基于电池容量与实测放电斜率推算</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════ 一体化示波监控面板 (内嵌三连指标胶囊栏) ══════════ -->
+        <section class="chart-card">
+            <div class="chart-head">
+                <div class="chart-title-group">
+                    <span class="chart-title">电量消耗历史走势与关键指标</span>
+                </div>
+                <div class="chart-window-tabs">
+                    <button class="chart-tab" onclick="setChartWindow(24, this)">24 小时</button>
+                    <button class="chart-tab active" onclick="setChartWindow(72, this)">3 天</button>
+                    <button class="chart-tab" onclick="setChartWindow(168, this)">7 天</button>
+                </div>
+            </div>
+
+            <!-- 内嵌式三连高能指标胶囊栏 -->
+            <div class="chart-metrics-capsule-bar">
+                <!-- 实时放电速率 (metricDischargeRate) -->
+                <div class="metric-capsule-item">
+                    <div class="metric-capsule-icon">
+                        <svg viewBox="0 0 24 24"><path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.5 2.54l2.23 1.54C21.46 14.79 22 13.46 22 12c0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.04-4.09l-2.2-1.55C16.42 17.84 14.36 19 12 19z"/></svg>
+                    </div>
+                    <div class="metric-capsule-body">
+                        <span class="metric-capsule-label">平均放电速率</span>
+                        <span class="metric-capsule-val"><span id="metricDischargeRate">--</span> <small style="font-size:9.5px;font-weight:600;color:#64748b;">%/h</small></span>
+                    </div>
+                </div>
+
+                <!-- 距上次充满与健康循环 (metricFullTime, metricCycleStatus) -->
+                <div class="metric-capsule-item">
+                    <div class="metric-capsule-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
+                    </div>
+                    <div class="metric-capsule-body">
+                        <span class="metric-capsule-label">距上次充满</span>
+                        <span class="metric-capsule-val" id="metricFullTime">初次记录中</span>
+                        <span class="metric-capsule-sub" id="metricCycleStatus">健康监控中</span>
+                    </div>
+                </div>
+
+                <!-- 硬件实时同步时间 (metricSyncTime) -->
+                <div class="metric-capsule-item">
+                    <div class="metric-capsule-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                    </div>
+                    <div class="metric-capsule-body">
+                        <span class="metric-capsule-label">底层硬件对账</span>
+                        <span class="metric-capsule-val" id="metricSyncTime">等待硬件响应</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-body-row">
+                <div class="chart-y-axis">
+                    <span>100%</span>
+                    <span>50%</span>
+                    <span>0%</span>
+                </div>
+                <div class="chart-plot-area" id="chartPlotArea" onmousemove="handleChartHover(event)" onmouseleave="handleChartLeave()">
+                    <div class="chart-svg-wrap">
+                        <svg id="chartSvg" viewBox="0 0 600 120" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#0066FF" stop-opacity="0.25"/>
+                                    <stop offset="100%" stop-color="#0066FF" stop-opacity="0.01"/>
+                                </linearGradient>
+                                <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#0066FF" flood-opacity="0.35"/>
+                                </filter>
+                            </defs>
+                            <g class="svg-grid" id="svgGridGroup"></g>
+                            <path class="svg-area" id="svgAreaPath" d=""/>
+                            <path class="svg-line" id="svgLinePath" d=""/>
+                            <g class="svg-dots" id="svgPointsGroup"></g>
+                            <!-- 十字准星与悬停吸附指示器 -->
+                            <g class="svg-crosshair" id="svgCrosshairGroup">
+                                <line id="crosshairV" x1="0" y1="8" x2="0" y2="112" stroke="rgba(0,102,255,0.4)" stroke-dasharray="3 3" stroke-width="1.2" opacity="0"/>
+                                <line id="crosshairH" x1="0" y1="0" x2="600" y2="0" stroke="rgba(0,102,255,0.2)" stroke-dasharray="3 3" stroke-width="1" opacity="0"/>
+                                <circle id="crosshairDot" cx="0" cy="0" r="4.5" fill="#0066FF" stroke="#ffffff" stroke-width="2.5" opacity="0" filter="url(#dotGlow)"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <!-- 浮动 Tooltip -->
+                    <div class="chart-tooltip" id="chartTooltip" style="display: none;">
+                        <div class="tooltip-time" id="tipTime">--</div>
+                        <div class="tooltip-val-row">
+                            <span class="tooltip-val" id="tipVal">--%</span>
+                            <span class="tooltip-badge" id="tipBadge">记录点</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-x-labels" id="chartXLabels">
+                <span>--</span><span>--</span><span>--</span><span>当前</span>
+            </div>
+        </section>
+
+        <!-- ══════════ 底部操作与设置 ══════════ -->
+        <footer class="bottom-bar">
+            <button class="btn btn-primary" onclick="sendMsg('refresh')">
+                <svg viewBox="0 0 24 24"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08a6 6 0 1 1-1.42-6.58L13 10.5h7v-7l-2.35 2.85z"/></svg>
+                <span>立即对账刷新</span>
+            </button>
+            <button class="btn btn-ghost" onclick="sendMsg('export_csv')">
+                <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-7-6zm-1 14l-3-3h2V9h2v4h2l-3 3z"/></svg>
+                <span>导出续航数据 (CSV)</span>
+            </button>
+            <div class="btn-spacer"></div>
+            <label class="toggle-wrap">
+                <input type="checkbox" id="autoStartInput" onchange="sendMsg('set_auto_start', this.checked)">
+                <span class="toggle-switch"></span>
+                <span>开机启动</span>
+            </label>
+        </footer>
+    </main>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+ * Volt 2.0 桥接协议核心 (严格保持与 Python 的 20 个 ID 契约)
+ * ════════════════════════════════════════════════════════ */
+
+let activeDevice = 'lingbao_k98';
+let chartHours = 72;
+
+const DEVICE_META = {
+    lingbao_k98: {
+        name: '凌豹 K98 机械键盘',
+        img: 'dev_keyboard.png'
+    },
+    mchose_g3v2: {
+        name: '迈从 G3 V2 无线鼠标',
+        img: 'dev_mouse.png'
+    }
+};
+
+const deviceStates = {};
+
+/* ── Python 数据注入主入口 (不可修改函数签名) ── */
+window.updateDeviceStatus = function(devId, payload) {
+    deviceStates[devId] = Object.assign({}, deviceStates[devId], payload);
+
+    // 侧栏设备卡片电量与状态同步 (tabPctK98 / tabPctG3 / tabMiniFill / tabStatus)
+    const isK98 = devId === 'lingbao_k98';
+    const pctEl = isK98 ? document.getElementById('tabPctK98') : document.getElementById('tabPctG3');
+    const miniFill = isK98 ? document.getElementById('tabMiniFillK98') : document.getElementById('tabMiniFillG3');
+    const statusSub = isK98 ? document.getElementById('tabStatusK98') : document.getElementById('tabStatusG3');
+
+    if (pctEl) {
+        pctEl.textContent = (payload.online && payload.percent > 0) ? payload.percent + '%' : '--';
+    }
+    if (miniFill) {
+        miniFill.style.width = (payload.online && payload.percent > 0) ? Math.max(4, payload.percent) + '%' : '0%';
+        if (payload.charging) {
+            miniFill.style.background = '#10B981';
+        } else if (payload.percent <= 15) {
+            miniFill.style.background = '#EF4444';
+        } else if (payload.percent <= 40) {
+            miniFill.style.background = '#F59E0B';
+        } else {
+            miniFill.style.background = 'var(--v-primary)';
+        }
+    }
+    if (statusSub) {
+        if (!payload.online || payload.percent <= 0) {
+            statusSub.textContent = isK98 ? '未连接' : '待唤醒刷新';
+        } else if (payload.charging) {
+            statusSub.textContent = '⚡ 快速充电中';
+        } else if (payload.raw_info === 'Sleeping') {
+            statusSub.textContent = '💤 深度休眠中';
+        } else {
+            statusSub.textContent = '2.4G 接收器已连接';
+        }
+    }
+
+    if (devId === activeDevice) {
+        renderHero(payload);
+        renderMetrics(payload);
+        renderChart(payload.history || []);
+    }
+
+    // 开机自启动状态绑定
+    const autoEl = document.getElementById('autoStartInput');
+    if (autoEl && typeof payload.autoStart === 'boolean') {
+        autoEl.checked = payload.autoStart;
+    }
+};
+
+/* ── Hero 核心状态渲染 ── */
+function renderHero(p) {
+    const meta = DEVICE_META[activeDevice] || { name: activeDevice, img: '' };
+
+    // 设备名
+    const nameEl = document.getElementById('heroDevName');
+    if (nameEl) nameEl.textContent = meta.name;
+
+    // 设备实物渲染图
+    const img = document.getElementById('heroRenderImg');
+    if (img) {
+        if (img.getAttribute('src') !== meta.img) img.src = meta.img;
+        img.classList.toggle('offline', !(p.online && p.percent > 0));
+    }
+
+    // 连接与状态胶囊 (heroConnStatus)
+    const connEl = document.getElementById('heroConnStatus');
+    if (connEl) {
+        connEl.className = 'conn-chip';
+        if (!p.online || p.percent <= 0) {
+            connEl.classList.add('offline');
+            connEl.innerHTML = '<span class="dot"></span><span>离线 (未连接)</span>';
+        } else if (p.charging) {
+            connEl.classList.add('charging');
+            connEl.innerHTML = '<span class="dot"></span><span>充电中</span>';
+        } else if (p.raw_info === 'Sleeping') {
+            connEl.classList.add('offline');
+            connEl.innerHTML = '<span class="dot" style="background:#f59e0b;"></span><span style="color:#b45309;">💤 深度休眠中 (移动唤醒)</span>';
+        } else {
+            connEl.classList.add('online');
+            connEl.innerHTML = '<span class="dot"></span><span>2.4G 已连接</span>';
+        }
+    }
+
+    // 充电中特殊高光徽章 (heroChgTag)
+    const chgTag = document.getElementById('heroChgTag');
+    if (chgTag) chgTag.style.display = (p.charging && p.percent > 0) ? 'inline-flex' : 'none';
+
+    // 粗体主电量百分比 (heroBattNum)
+    const numEl = document.getElementById('heroBattNum');
+    if (numEl) {
+        const hasVal = (p.online && p.percent > 0);
+        numEl.innerHTML = hasVal ? `${p.percent}<span class="pct">%</span>` : '--';
+        numEl.classList.toggle('placeholder', !hasVal);
+    }
+
+    // 充能进度柱 (heroStripFill)
+    const strip = document.getElementById('heroStripFill');
+    if (strip) {
+        strip.className = 'batt-bar-fill';
+        if (!p.online || p.percent <= 0) {
+            strip.style.width = '0%';
+        } else {
+            strip.style.width = Math.max(3, p.percent) + '%';
+            if (p.charging) strip.classList.add('charging');
+            else if (p.percent <= 15) strip.classList.add('low');
+            else if (p.percent <= 40) strip.classList.add('mid');
+        }
+    }
+}
+
+/* ── 3 大指标卡与续航估算渲染 ── */
+function renderMetrics(p) {
+    const remRaw = p.remText || '';
+    const m = remRaw.match(/^(.*?)\s*\((.*?)\)\s*$/);
+    if (m && m[1] && m[2]) {
+        setText('estHoursDisplay', '剩余 ' + m[1]);
+        const subEl = document.getElementById('estHoursSub');
+        if (subEl) subEl.textContent = '折算约 ' + m[2] + ' · 结合标称容量与实测功耗';
+    } else {
+        setText('estHoursDisplay', remRaw || '待同步');
+        const subEl = document.getElementById('estHoursSub');
+        if (subEl) subEl.textContent = '基于放电斜率推算';
+    }
+
+    setText('metricDischargeRate', p.rate ? p.rate.toFixed(2) : '--');
+    setText('metricFullTime', p.lastFull || '初次记录中');
+    setText('metricCycleStatus', p.cycleText || '健康监控中');
+    setText('metricSyncTime', p.syncTime || '等待硬件响应');
+}
+
+function setText(id, txt) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = txt;
+    }
+}
+
+/* ── 全局图表缓存供鼠标十字准星拾取 ── */
+let _chartMeta = {
+    coords: [],
+    nodes: [],
+    cutoff: 0,
+    now: 0,
+    chartHours: 72
+};
+let _lastRenderedSig = '';
+
+/* ── 平滑贝塞尔曲线渲染 ── */
+function renderChart(history) {
+    const area = document.getElementById('svgAreaPath');
+    const line = document.getElementById('svgLinePath');
+    const grid = document.getElementById('svgGridGroup');
+    const dots = document.getElementById('svgPointsGroup');
+    if (!area || !line || !grid || !dots) return;
+
+    const now = Date.now() / 1000;
+    const cutoff = now - chartHours * 3600;
+    const st = deviceStates[activeDevice];
+    const currentPercent = (st && st.online && st.percent > 0) ? st.percent : (history && history.length ? history[history.length - 1].p : 0);
+
+    // 智能防抖校验：若设备、时间窗、电量、历史记录条数与最新时间均无变动，坚决不触动 DOM 重绘，彻底根绝 400ms 高频重建导致的闪烁
+    const latestT = (history && history.length) ? Math.floor(history[history.length - 1].t) : 0;
+    const sig = `${activeDevice}_${chartHours}_${currentPercent}_${history ? history.length : 0}_${latestT}`;
+    if (_lastRenderedSig === sig) {
+        return;
+    }
+    _lastRenderedSig = sig;
+
+    while (grid.firstChild) grid.removeChild(grid.firstChild);
+    while (dots.firstChild) dots.removeChild(dots.firstChild);
+
+    // 绘制 100%、50%、0% 3 条水平参考虚线 (Y: 10, 60, 110)
+    [10, 60, 110].forEach(y => {
+        const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l.setAttribute('x1', '0'); l.setAttribute('y1', String(y));
+        l.setAttribute('x2', '600'); l.setAttribute('y2', String(y));
+        grid.appendChild(l);
+    });
+
+    // 筛选当前时间窗内的有效历史记录
+    let validPts = (history || []).filter(p => p.t >= cutoff && p.t <= now + 300);
+    validPts.sort((a, b) => a.t - b.t);
+
+    if (validPts.length === 0) {
+        if (currentPercent > 0) {
+            const y = 110 - (Math.max(0, Math.min(100, currentPercent)) / 100) * 100;
+            line.setAttribute('d', `M 0 ${y.toFixed(1)} L 600 ${y.toFixed(1)}`);
+            area.setAttribute('d', `M 0 ${y.toFixed(1)} L 600 ${y.toFixed(1)} L 600 114 L 0 114 Z`);
+            
+            const ep = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            ep.setAttribute('cx', '600'); ep.setAttribute('cy', y.toFixed(1)); ep.setAttribute('r', '4');
+            dots.appendChild(ep);
+        } else {
+            area.setAttribute('d', '');
+            line.setAttribute('d', '');
+        }
+        renderXLabels(cutoff, now, chartHours);
+        _chartMeta = { coords: [], nodes: [], cutoff, now, chartHours };
+        return;
+    }
+
+    // 构造连续渲染序列
+    const plotPts = [];
+    
+    // 1. 若最早记录未填满左边界，将最早电量平推延展至 cutoff (x = 0)，保证时间窗饱满无断头
+    if (validPts[0].t > cutoff + 600) {
+        plotPts.push({ t: cutoff, p: validPts[0].p, isStart: true });
+    }
+
+    // 2. 依次加入实际历史记录点（过滤时间戳完全相同或 1 分钟内电量相同的重叠点，杜绝密集线结）
+    for (let i = 0; i < validPts.length; i++) {
+        const cur = validPts[i];
+        if (plotPts.length > 0) {
+            const prev = plotPts[plotPts.length - 1];
+            if (Math.abs(cur.t - prev.t) < 60 && cur.p === prev.p) {
+                continue;
+            }
+        }
+        plotPts.push(cur);
+    }
+
+    // 3. 右端点：若最新记录距当前超过 1 分钟，且设备在线有电量，延续到当前时刻 now (x = 600)
+    const lastValid = validPts[validPts.length - 1];
+    if (now - lastValid.t > 60 && currentPercent > 0) {
+        plotPts.push({ t: now, p: currentPercent, isNow: true, c: (st && st.charging) });
+    }
+
+    // 计算 SVG 坐标 (X: 0~600, Y: 10~110)
+    const span = Math.max(1, now - cutoff);
+    const coords = [];
+    for (let pt of plotPts) {
+        const x = Math.max(0, Math.min(600, ((pt.t - cutoff) / span) * 600));
+        const y = 110 - (Math.max(0, Math.min(100, pt.p)) / 100) * 100;
+        
+        // 若 X 坐标与上一点完全重叠，略过以保证 X 单调严格递增
+        if (coords.length > 0 && x <= coords[coords.length - 1].x) {
+            continue;
+        }
+
+        coords.push({
+            x, y,
+            t: pt.t,
+            p: pt.p,
+            c: !!pt.c,
+            isNow: !!pt.isNow,
+            isStart: !!pt.isStart
+        });
+    }
+
+    // 生成严格单调三次贝塞尔样条路径（彻底杜绝线条倒退回环、打结现象）
+    const d = generateSmoothSpline(coords);
+    line.setAttribute('d', d);
+
+    // 闭合面积渐变
+    const lastX = coords[coords.length - 1].x.toFixed(1);
+    const firstX = coords[0].x.toFixed(1);
+    const areaD = `${d} L ${lastX} 114 L ${firstX} 114 Z`;
+    area.setAttribute('d', areaD);
+
+    // 渲染历史真实节点（过滤 12px 内重叠同值点）
+    const realNodes = [];
+    for (let pt of coords) {
+        if (pt.isStart) continue; // 边界辅助点不画圆点
+        
+        const lastNode = realNodes[realNodes.length - 1];
+        if (lastNode && Math.abs(pt.x - lastNode.x) < 12 && pt.p === lastNode.p && !pt.isNow) {
+            continue;
+        }
+
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', pt.x.toFixed(1));
+        c.setAttribute('cy', pt.y.toFixed(1));
+        c.setAttribute('r', pt.isNow ? '4' : '3.2');
+        dots.appendChild(c);
+
+        realNodes.push(pt);
+    }
+
+    // 最新端点静态高质感光晕（去除 SVG animate 标签，彻底消灭高频抽搐闪烁）
+    const epCoord = coords[coords.length - 1];
+    if (epCoord) {
+        const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        halo.setAttribute('cx', epCoord.x.toFixed(1));
+        halo.setAttribute('cy', epCoord.y.toFixed(1));
+        halo.setAttribute('r', '7');
+        halo.setAttribute('fill', 'rgba(0, 102, 255, 0.15)');
+        dots.appendChild(halo);
+    }
+
+    // X 轴时间刻度渲染
+    renderXLabels(cutoff, now, chartHours);
+
+    // 缓存元数据供交互使用
+    _chartMeta = {
+        coords,
+        nodes: realNodes,
+        cutoff,
+        now,
+        chartHours
+    };
+}
+
+/* ── 严格单调三次样条算法 (Fritsch-Carlson 算法，彻底杜绝回环与打结) ── */
+function generateSmoothSpline(pts) {
+    if (!pts || pts.length === 0) return '';
+    if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    if (pts.length === 2) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+
+    const n = pts.length;
+    const deltas = [];
+    const slopes = [];
+    for (let i = 0; i < n - 1; i++) {
+        const dx = pts[i + 1].x - pts[i].x;
+        const dy = pts[i + 1].y - pts[i].y;
+        deltas.push(dx);
+        slopes.push(dx > 0.001 ? dy / dx : 0);
+    }
+
+    // 计算各节点斜率（单调保形）
+    const m = new Array(n);
+    m[0] = slopes[0];
+    m[n - 1] = slopes[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+        if (slopes[i - 1] * slopes[i] <= 0) {
+            m[i] = 0; // 极值点切线平直
+        } else {
+            const dxBefore = deltas[i - 1];
+            const dxAfter = deltas[i];
+            const common = dxBefore + dxAfter;
+            m[i] = common > 0.001 ? (3 * common) / ((common + dxAfter) / slopes[i - 1] + (common + dxBefore) / slopes[i]) : 0;
+        }
+    }
+
+    // 生成三次贝塞尔路径 (控制点严格落在 [x_i, x_{i+1}] 内部 1/3 和 2/3 处，数学上绝无回环打结可能)
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < n - 1; i++) {
+        const dx = deltas[i];
+        if (dx <= 0.001) {
+            d += ` L ${pts[i + 1].x.toFixed(1)} ${pts[i + 1].y.toFixed(1)}`;
+            continue;
+        }
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const cp1x = p1.x + dx / 3;
+        const cp1y = p1.y + (m[i] * dx) / 3;
+        const cp2x = p2.x - dx / 3;
+        const cp2y = p2.y - (m[i + 1] * dx) / 3;
+
+        const c1y = Math.max(10, Math.min(110, cp1y));
+        const c2y = Math.max(10, Math.min(110, cp2y));
+
+        d += ` C ${cp1x.toFixed(1)} ${c1y.toFixed(1)}, ${cp2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+}
+
+/* ── 格式化 X 轴刻度 ── */
+function renderXLabels(cutoff, now, hours) {
+    const xEl = document.getElementById('chartXLabels');
+    if (!xEl) return;
+    xEl.innerHTML = '';
+
+    const labels = [];
+    if (hours <= 24) {
+        const step = 6 * 3600;
+        for (let t = cutoff; t < now - 1800; t += step) {
+            const dt = new Date(t * 1000);
+            labels.push(`${String(dt.getHours()).padStart(2, '0')}:00`);
+        }
+        labels.push('当前');
+    } else if (hours <= 72) {
+        const step = 24 * 3600;
+        for (let t = cutoff; t < now - 3600; t += step) {
+            const dt = new Date(t * 1000);
+            labels.push(`${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, '0')}:00`);
+        }
+        labels.push('当前');
+    } else {
+        const step = 42 * 3600;
+        for (let t = cutoff; t < now - 3600; t += step) {
+            const dt = new Date(t * 1000);
+            labels.push(`${dt.getMonth() + 1}/${dt.getDate()}`);
+        }
+        labels.push('当前');
+    }
+
+    for (let txt of labels) {
+        const s = document.createElement('span');
+        s.textContent = txt;
+        xEl.appendChild(s);
+    }
+}
+
+/* ── 图表鼠标悬停十字准星与磁吸交互 ── */
+function handleChartHover(e) {
+    const meta = _chartMeta;
+    if (!meta || !meta.coords || meta.coords.length === 0) return;
+
+    const plotArea = document.getElementById('chartPlotArea');
+    const svg = document.getElementById('chartSvg');
+    if (!plotArea || !svg) return;
+
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0) return;
+
+    const mouseX = Math.max(0, Math.min(600, ((e.clientX - rect.left) / rect.width) * 600));
+
+    // 检查磁吸吸附：若距离真实节点 <= 16px，磁吸到该节点
+    let snapTarget = null;
+    let minD = 16;
+    for (let n of meta.nodes) {
+        const d = Math.abs(n.x - mouseX);
+        if (d < minD) {
+            minD = d;
+            snapTarget = n;
+        }
+    }
+
+    let targetX, targetY, targetT, targetP, isNode, isChg;
+    if (snapTarget) {
+        targetX = snapTarget.x;
+        targetY = snapTarget.y;
+        targetT = snapTarget.t;
+        targetP = snapTarget.p;
+        isNode = true;
+        isChg = snapTarget.c;
+    } else {
+        targetX = mouseX;
+        isNode = false;
+        isChg = false;
+        const coords = meta.coords;
+        let leftPt = coords[0], rightPt = coords[coords.length - 1];
+        for (let i = 0; i < coords.length - 1; i++) {
+            if (mouseX >= coords[i].x && mouseX <= coords[i + 1].x) {
+                leftPt = coords[i];
+                rightPt = coords[i + 1];
+                break;
+            }
+        }
+        const spanX = rightPt.x - leftPt.x;
+        const ratio = spanX > 0.001 ? (mouseX - leftPt.x) / spanX : 0;
+        targetY = leftPt.y + ratio * (rightPt.y - leftPt.y);
+        targetT = leftPt.t + ratio * (rightPt.t - leftPt.t);
+        targetP = Math.round(leftPt.p + ratio * (rightPt.p - leftPt.p));
+    }
+
+    // 更新十字准星
+    const lineV = document.getElementById('crosshairV');
+    const lineH = document.getElementById('crosshairH');
+    const dot = document.getElementById('crosshairDot');
+    if (lineV) {
+        lineV.setAttribute('x1', targetX.toFixed(1));
+        lineV.setAttribute('x2', targetX.toFixed(1));
+        lineV.setAttribute('opacity', '1');
+    }
+    if (lineH) {
+        lineH.setAttribute('y1', targetY.toFixed(1));
+        lineH.setAttribute('y2', targetY.toFixed(1));
+        lineH.setAttribute('opacity', '1');
+    }
+    if (dot) {
+        dot.setAttribute('cx', targetX.toFixed(1));
+        dot.setAttribute('cy', targetY.toFixed(1));
+        dot.setAttribute('r', isNode ? '5.5' : '4');
+        dot.setAttribute('opacity', '1');
+    }
+
+    // 更新悬浮 Tooltip 气泡
+    const tip = document.getElementById('chartTooltip');
+    const tipTime = document.getElementById('tipTime');
+    const tipVal = document.getElementById('tipVal');
+    const tipBadge = document.getElementById('tipBadge');
+
+    if (tip && tipTime && tipVal && tipBadge) {
+        const dt = new Date(targetT * 1000);
+        const nowDt = new Date();
+        const isToday = dt.toDateString() === nowDt.toDateString();
+        const timeStr = `${isToday ? '今天' : `${dt.getMonth() + 1}月${dt.getDate()}日`} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+        
+        tipTime.textContent = timeStr;
+        tipVal.textContent = `${targetP}%`;
+        
+        if (isChg) {
+            tipBadge.textContent = '⚡ 充电中';
+            tipBadge.className = 'tooltip-badge charging';
+        } else if (isNode) {
+            tipBadge.textContent = '📌 硬件实测点';
+            tipBadge.className = 'tooltip-badge';
+        } else {
+            tipBadge.textContent = '平滑走势';
+            tipBadge.className = 'tooltip-badge';
+        }
+
+        const tipClientX = (targetX / 600) * rect.width;
+        tip.style.left = `${Math.max(55, Math.min(rect.width - 55, tipClientX))}px`;
+        tip.style.display = 'flex';
+    }
+}
+
+function handleChartLeave() {
+    const lineV = document.getElementById('crosshairV');
+    const lineH = document.getElementById('crosshairH');
+    const dot = document.getElementById('crosshairDot');
+    const tip = document.getElementById('chartTooltip');
+
+    if (lineV) lineV.setAttribute('opacity', '0');
+    if (lineH) lineH.setAttribute('opacity', '0');
+    if (dot) dot.setAttribute('opacity', '0');
+    if (tip) tip.style.display = 'none';
+}
+
+/* ── 切换当前展示的外设 ── */
+function switchDevice(devId) {
+    activeDevice = devId;
+    _lastRenderedSig = '';
+    const tabK = document.getElementById('tabK98');
+    const tabG = document.getElementById('tabG3');
+    if (tabK) tabK.classList.toggle('active', devId === 'lingbao_k98');
+    if (tabG) tabG.classList.toggle('active', devId === 'mchose_g3v2');
+    const st = deviceStates[devId];
+    if (st) {
+        renderHero(st);
+        renderMetrics(st);
+        renderChart(st.history || []);
+    }
+}
+
+/* ── 曲线时间跨度切换 ── */
+function setChartWindow(hours, btn) {
+    chartHours = hours;
+    _lastRenderedSig = '';
+    document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const st = deviceStates[activeDevice];
+    if (st) renderChart(st.history || []);
+}
+
+/* ── 发送事件消息至 Python 宿主 ── */
+function sendMsg(action, data) {
+    const payload = { action };
+    if (action === 'export_csv') payload.device_id = activeDevice;
+    else if (action === 'set_auto_start') payload.enabled = !!data;
+    try {
+        if (window.volt && window.volt.postMessage) {
+            window.volt.postMessage(JSON.stringify(payload));
+        }
+    } catch (e) {}
+}
+
+/* ── 轻量内嵌提示（替代 wx.MessageBox 系统弹窗，遵守"不弹窗"约束） ── */
+window.showToast = function(message, kind) {
+    let host = document.getElementById('voltToastHost');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'voltToastHost';
+        host.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);'
+            + 'display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;';
+        document.body.appendChild(host);
+    }
+    const isWarn = kind === 'warn';
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.style.cssText = 'background:' + (isWarn ? '#fff8ec' : '#ffffff')
+        + ';color:' + (isWarn ? '#a15c00' : '#111827')
+        + ';border:1px solid ' + (isWarn ? '#f3d9a4' : '#d7dee3')
+        + ';box-shadow:0 8px 24px rgba(15,23,42,0.12);border-radius:8px;'
+        + 'padding:10px 16px;font-size:13px;font-weight:600;'
+        + 'opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;';
+    host.appendChild(el);
+    requestAnimationFrame(function() {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+    });
+    setTimeout(function() {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(6px)';
+        setTimeout(function() { el.remove(); }, 220);
+    }, 2600);
+};
+
+/* ── 页面就绪握手 ── */
+window.addEventListener('DOMContentLoaded', function() {
+    try {
+        if (window.volt && window.volt.postMessage) {
+            window.volt.postMessage(JSON.stringify({ action: 'dom_ready' }));
+        }
+    } catch (e) {}
+});
+</script>
+</body>
+</html>

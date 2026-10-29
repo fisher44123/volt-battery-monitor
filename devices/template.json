@@ -1,0 +1,24 @@
+{
+  "_comment": "外设配置模板：复制本文件为新名字（如 my_mouse.json），在软件中即可自动识别载入",
+  "id": "my_custom_device",
+  "name": "我的新外设名称",
+  "device_type": "mouse",
+  "vendor_id": "0x1234",
+  "product_ids": [
+    "0x5678"
+  ],
+  "usage_page": "0xFF00",
+  "usage": "0x0001",
+  "protocol": "standard_hid",
+  "enabled": true,
+  "description": "自定义外设说明",
+  "protocol_custom": {
+    "_comment": "当 protocol 为 standard_hid 时生效的自定义规则",
+    "query_hex": ["0x08", "0x04"],
+    "expected_report_id": 8,
+    "battery_byte_offset": 6,
+    "charging_byte_offset": 4,
+    "charging_bit_mask": 1,
+    "xor_mask": 0
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "lingbao_k98",
+  "name": "凌豹 K98 无线键盘",
+  "device_type": "keyboard",
+  "vendor_id": "0x3554",
+  "product_ids": [
+    "0xFA09"
+  ],
+  "usage_page": "0xFF02",
+  "usage": "0x0002",
+  "protocol": "compx",
+  "poll_interval": 30,
+  "enabled": true,
+  "description": "凌豹 K98 三模机械键盘（Compx 2.4G 接收器方案，电量走 Col01 输出报告查询 0x13 电量帧，byte[6] 为百分比，蓝牙真值已校验）"
+}

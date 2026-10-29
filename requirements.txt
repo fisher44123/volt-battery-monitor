@@ -1,0 +1,7 @@
+# Volt 运行时依赖
+# 注意：matplotlib 已被移除 —— 全项目没有任何一行 import 它
+# （只有 data/ 下几个早已废弃的临时测试脚本用过），
+# 留在 requirements 里只会让 PyInstaller 白白多打几十 MB。
+hidapi>=0.14.0
+wxPython>=4.2.0
+Pillow>=10.0.0
