@@ -106,13 +106,18 @@ def _status_text(st) -> str:
 class TrayCardPopup(wx.Frame):
     """轻量状态卡片：设备概览 + 两个动作按钮。"""
 
-    WIDTH = 396
-    PAD = 16
-    HEADER_H = 30
-    ROW_H = 64
-    BTN_H = 36
-    THUMB_W = 52
-    THUMB_H = 40
+    # 尺寸全部按 DIP；在 200% 缩放的屏幕上会被放大一倍，
+    # 所以基准值要比"看起来合适"的物理尺寸小一半左右。
+    WIDTH = 316
+    PAD = 12
+    HEADER_H = 24
+    ROW_H = 52
+    BTN_H = 30
+    THUMB_W = 42
+    THUMB_H = 32
+    GAP_HEAD = 5        # 标题行 → 首台设备
+    GAP_LINE_TOP = 10   # 末台设备 → 分隔线
+    GAP_LINE_BOT = 10   # 分隔线 → 按钮
 
     def __init__(self, engine, callbacks: Dict[str, Callable]):
         app = wx.GetApp()
@@ -178,17 +183,17 @@ class TrayCardPopup(wx.Frame):
 
     def _calc_height(self) -> int:
         n = len(self._rows)
-        return (self.PAD + self.HEADER_H + 6 + n * self.ROW_H
-                + 12 + 1 + 12 + self.BTN_H + self.PAD)
+        return (self.PAD + self.HEADER_H + self.GAP_HEAD + n * self.ROW_H
+                + self.GAP_LINE_TOP + 1 + self.GAP_LINE_BOT + self.BTN_H + self.PAD)
 
     # ─────────────── 几何 ───────────────
 
     def _btn_rects(self) -> Tuple[wx.Rect, wx.Rect]:
         d = self.FromDIP
         w = self.GetClientSize().width
-        y = d(self.PAD + self.HEADER_H + 6
-              + len(self._rows) * self.ROW_H + 12 + 1 + 12)
-        gap = d(10)
+        y = d(self.PAD + self.HEADER_H + self.GAP_HEAD
+              + len(self._rows) * self.ROW_H + self.GAP_LINE_TOP + 1 + self.GAP_LINE_BOT)
+        gap = d(8)
         inner = w - d(self.PAD) * 2
         main_w = int((inner - gap) * 0.58)
         ghost_w = inner - gap - main_w
@@ -228,25 +233,25 @@ class TrayCardPopup(wx.Frame):
         # 外描边：让卡片与桌面之间有一条清晰的分界
         gc.SetPen(wx.Pen(BORDER, 1))
         gc.SetBrush(wx.TRANSPARENT_BRUSH)
-        gc.DrawRoundedRectangle(0.5, 0.5, w - 1, h - 1, d(10))
+        gc.DrawRoundedRectangle(0.5, 0.5, w - 1, h - 1, d(8))
 
         # ── 标题行 ──
-        gc.SetFont(self._font(10.5, True), TEXT_MAIN)
-        gc.DrawText("外设电量", d(self.PAD), d(self.PAD + 4))
+        gc.SetFont(self._font(9.5, True), TEXT_MAIN)
+        gc.DrawText("外设电量", d(self.PAD), d(self.PAD + 3))
 
         tag = "2.4G 无线"
-        gc.SetFont(self._font(8), TEXT_FAINT)
+        gc.SetFont(self._font(7.5), TEXT_FAINT)
         tw, th = gc.GetTextExtent(tag)
-        gc.DrawText(tag, w - d(self.PAD) - tw, d(self.PAD + 7))
+        gc.DrawText(tag, w - d(self.PAD) - tw, d(self.PAD + 5))
 
         # ── 设备行 ──
-        y = d(self.PAD + self.HEADER_H + 6)
+        y = d(self.PAD + self.HEADER_H + self.GAP_HEAD)
         for i, row in enumerate(self._rows):
             self._paint_row(gc, row, y, w, i)
             y += d(self.ROW_H)
 
         # ── 分隔线 ──
-        line_y = y + d(12)
+        line_y = y + d(self.GAP_LINE_TOP)
         gc.SetPen(wx.Pen(DIVIDER, 1))
         gc.StrokeLine(d(self.PAD), line_y, w - d(self.PAD), line_y)
 
@@ -273,34 +278,36 @@ class TrayCardPopup(wx.Frame):
         if thumb is not None:
             gc.DrawBitmap(thumb, pad, box_y, box_w, box_h)
 
-        text_x = pad + box_w + d(12)
+        text_x = pad + box_w + d(10)
 
         # 设备名
-        gc.SetFont(self._font(10, True), TEXT_MAIN)
+        gc.SetFont(self._font(9, True), TEXT_MAIN)
         name = row["name"]
-        max_w = w - d(self.PAD) - text_x - d(96)
+        max_w = w - d(self.PAD) - text_x - d(78)
         while gc.GetTextExtent(name)[0] > max_w and len(name) > 4:
             name = name[:-2] + "…"
-        gc.DrawText(name, text_x, y + d(8))
+        gc.DrawText(name, text_x, y + d(5))
 
         # 状态行：小圆点 + 文案
+        # 注意 dot_r 必须走整数 DIP（FromDIP 传 float 会命不中重载直接抛错，
+        # 表现为"画到这一行就停住"，后面的电量、按钮全都不出现）
         dot_r = d(3)
         dot_cx = text_x + dot_r
-        dot_cy = y + d(32)
+        dot_cy = y + d(26)
         gc.SetBrush(wx.Brush(row["tone"] if row["online"] else TEXT_FAINT))
         gc.SetPen(wx.TRANSPARENT_PEN)
         gc.DrawEllipse(dot_cx - dot_r, dot_cy - dot_r, dot_r * 2, dot_r * 2)
 
-        gc.SetFont(self._font(8), TEXT_SUB)
-        gc.DrawText(row["status"], text_x + dot_r * 2 + d(6), y + d(26))
+        gc.SetFont(self._font(7.5), TEXT_SUB)
+        gc.DrawText(row["status"], text_x + dot_r * 2 + d(5), y + d(21))
 
         # 电量数字（右对齐，等宽观感）
         # 用"总宽 + 统一左起点"排版：分别右对齐数字和 % 会让 % 溢出卡片右缘
         right = w - d(self.PAD)
         if row["online"] and row["pct"] > 0:
             num = str(row["pct"])
-            f_num = self._font(17, True, NUM_FACE)
-            f_pct = self._font(9, True, NUM_FACE)
+            f_num = self._font(14, True, NUM_FACE)
+            f_pct = self._font(7.5, True, NUM_FACE)
 
             gc.SetFont(f_num, row["tone"])
             nw, nh = gc.GetTextExtent(num)
@@ -309,20 +316,20 @@ class TrayCardPopup(wx.Frame):
 
             x0 = right - nw - pw
             gc.SetFont(f_num, row["tone"])
-            gc.DrawText(num, x0, y + d(6))
+            gc.DrawText(num, x0, y + d(3))
             gc.SetFont(f_pct, row["tone"])
-            gc.DrawText("%", x0 + nw + d(1), y + d(6) + nh - ph - d(3))
+            gc.DrawText("%", x0 + nw + d(1), y + d(3) + nh - ph - d(2))
         else:
-            f_dim = self._font(13, True, NUM_FACE)
+            f_dim = self._font(11, True, NUM_FACE)
             gc.SetFont(f_dim, wx.Colour(0xCB, 0xD5, 0xE1))
             tw, _ = gc.GetTextExtent("--")
-            gc.DrawText("--", right - tw, y + d(10))
+            gc.DrawText("--", right - tw, y + d(6))
 
         # 电量条
         bar_x = text_x
-        bar_y = y + d(48)
+        bar_y = y + d(38)
         bar_w = w - d(self.PAD) - bar_x
-        bar_h = d(4)
+        bar_h = d(3)
         gc.SetPen(wx.TRANSPARENT_PEN)
         gc.SetBrush(wx.Brush(TRACK))
         gc.DrawRoundedRectangle(bar_x, bar_y, bar_w, bar_h, bar_h / 2.0)
@@ -338,7 +345,7 @@ class TrayCardPopup(wx.Frame):
 
     def _paint_button(self, gc, rect: wx.Rect, label: str, primary: bool, hovered: bool):
         d = self.FromDIP
-        radius = d(8)
+        radius = d(7)
         if primary:
             fill = ACCENT_HOVER if hovered else ACCENT
             pen = wx.TRANSPARENT_PEN
@@ -352,7 +359,7 @@ class TrayCardPopup(wx.Frame):
         gc.SetBrush(wx.Brush(fill))
         gc.DrawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, radius)
 
-        gc.SetFont(self._font(9, primary), fg)
+        gc.SetFont(self._font(8.5, primary), fg)
         tw, th = gc.GetTextExtent(label)
         gc.DrawText(label,
                     rect.x + (rect.width - tw) / 2.0,
