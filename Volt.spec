@@ -1,10 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_dynamic_libs
+
+binaries = []
+binaries += collect_dynamic_libs('wx')
 
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=binaries,
     datas=[('ui/assets', 'ui/assets'), ('assets', 'assets'), ('devices', 'devices')],
     hiddenimports=[],
     hookspath=[],

@@ -30,6 +30,7 @@ C:\Python313\python.exe main.py
 ```bat
 C:\Python313\python.exe -m PyInstaller --noconfirm --clean --onefile --noconsole ^
   --icon "assets/app_icon.ico" --name Volt ^
+  --collect-binaries wx ^
   --add-data "ui/assets;ui/assets" --add-data "assets;assets" --add-data "devices;devices" ^
   --exclude-module matplotlib --exclude-module numpy --exclude-module pandas ^
   --exclude-module scipy --exclude-module tkinter --exclude-module test ^
@@ -38,10 +39,15 @@ C:\Python313\python.exe -m PyInstaller --noconfirm --clean --onefile --noconsole
   main.py
 ```
 
-产物：`dist\Volt.exe`。
+产物：`dist\Volt.exe`（约 30 MB）。
 
-> 不要再用 `--collect-all wx`。那一句会把 wxPython 的全部 dll（含调试版）
-> 一股脑塞进去，是 exe 从 90MB 涨到 314MB 的主因。
+> **两个必须记住的坑**
+> 1. 不要用 `--collect-all wx`。它会把 wxPython 的全部 dll（含调试版）一股脑塞进去，
+>    是 exe 从 30MB 涨到 300MB 的主因。
+> 2. 但**必须保留 `--collect-binaries wx`**。`WebView2Loader.dll` 是运行时用
+>    `LoadLibrary` 动态加载的，PyInstaller 的依赖分析看不到它。少了这个 dll，
+>    exe 能启动、日志也正常、**但界面一片空白**（WebView 句柄 = 0），
+>    而且不会有任何报错 —— 这是最难查的一种故障。
 
 ## 三、数据都存在哪
 
@@ -109,7 +115,9 @@ C:\Python313\python.exe -m PyInstaller --noconfirm --clean --onefile --noconsole
 
 **打包**
 - 移除从未使用的 matplotlib 依赖，去掉 `--collect-all wx`，加 `--exclude-module`。
-- exe 体积 314MB → 见下方实测数字。
+- exe 体积 314MB → 30.5MB（-90%）。
+- **踩坑记录**：去掉 `--collect-all wx` 后必须补 `--collect-binaries wx`，
+  否则漏掉动态加载的 `WebView2Loader.dll`，exe 能启动但界面全白且无任何报错。
 
 **工程**
 - 初始化 git 仓库与 `.gitignore`。
