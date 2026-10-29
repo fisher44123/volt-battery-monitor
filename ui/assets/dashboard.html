@@ -58,13 +58,24 @@
 
 html, body {
     width: 100%; height: 100%;
-    background: linear-gradient(135deg, #EEF2F7 0%, #E8EEF5 100%);
+    background: #F2F3F5;
     color: var(--v-text-body);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", sans-serif;
+    /* ⚠ 中文字体必须排在 Segoe UI 之前。
+       Segoe UI 没有中文字形，排第一会让 Windows 回退到宋体（SimSun），
+       整个界面立刻显出 2010 年的味道 —— 这是上一版最大的视觉硬伤。 */
+    font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC",
+                 "Hiragino Sans GB", "Segoe UI", system-ui, sans-serif;
     font-size: 13px;
+    line-height: 1.5;
     overflow: hidden;
     user-select: none;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* 数字统一等宽：电量每秒刷新时数字不会左右抖 */
+body, .nav-pct, .metric-value, .batt-num, .hero-batt-num {
+    font-variant-numeric: tabular-nums;
 }
 
 /* ══════════ 整体应用框架 ══════════ */
@@ -74,19 +85,19 @@ html, body {
     height: 100%;
 }
 
-/* ────────── 左侧宽抽屉硬件导轨 (Apple Sequoia 风格) ────────── */
+/* ────────── 左侧硬件导轨 ────────── */
 .sidebar {
-    width: 236px;
+    width: 252px;
     flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
+    /* 背景本来就是纯色，backdrop-filter 只会白白吃掉 GPU 合成开销 */
+    background: #FFFFFF;
     border-right: 1px solid var(--v-border);
     display: flex;
     flex-direction: column;
-    padding: 16px 14px 14px;
+    padding: 16px 14px 62px;   /* 底部留出按钮的固定空间 */
     gap: 10px;
     z-index: 10;
+    position: relative;
 }
 
 .sidebar-brand {
@@ -135,54 +146,51 @@ html, body {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    padding: 10px 12px;
-    border-radius: 12px;
+    padding: 11px 12px;
+    border-radius: 10px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: #FFFFFF;
+    border: 1px solid var(--v-border);
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
     position: relative;
-    gap: 7px;
+    gap: 9px;
 }
 .nav-item:hover {
-    background: #ffffff;
-    border-color: var(--v-primary-border);
-    transform: translateY(-1px);
-    box-shadow: var(--v-shadow-sm);
+    border-color: #CBD5E1;
+    background: #FBFCFE;
 }
 .nav-item.active {
-    background: #ffffff;
-    border-color: rgba(0, 83, 226, 0.35);
-    box-shadow: 0 4px 16px rgba(0, 83, 226, 0.1);
+    background: #FFFFFF;
+    border-color: rgba(0, 83, 226, 0.38);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 0 0 3px rgba(0, 83, 226, .07);
 }
 .nav-item.active::before {
     content: "";
     position: absolute;
     left: 0;
-    top: 10px;
-    bottom: 10px;
-    width: 3.5px;
-    border-radius: 0 4px 4px 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
     background: var(--v-primary);
-    box-shadow: 0 0 8px rgba(0, 83, 226, 0.6);
 }
 .nav-item-top {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 11px;
     width: 100%;
 }
 .nav-thumb-wrap {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    background: #F8FAFC;
-    border: 1px solid var(--v-border-subtle);
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: #F7F9FC;
+    border: 1px solid #EDF1F6;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
 }
 .nav-thumb-wrap img {
-    width: 30px; height: 30px;
+    width: 32px; height: 32px;
     object-fit: contain;
 }
 .nav-info-wrap {
@@ -190,39 +198,49 @@ html, body {
     flex-direction: column;
     flex: 1;
     min-width: 0;
+    gap: 3px;
 }
 .nav-label {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 12.5px;
+    font-weight: 600;
     color: var(--v-text-title);
+    letter-spacing: -0.1px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* 状态与电量并排：电量不再挤占设备名的位置，
+   设备全名可以完整显示（旧版把它做成右侧药丸，把名字压成了省略号） */
+.nav-meta-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
 .nav-status-sub {
-    font-size: 10px;
+    font-size: 10.5px;
     color: var(--v-text-muted);
-    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 .nav-pct {
-    font-size: 12px;
-    font-weight: 800;
-    padding: 2px 7px;
-    border-radius: var(--v-radius-pill);
-    background: #F1F5F9;
-    color: var(--v-text-title);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--v-text-body);
+    flex-shrink: 0;
     font-variant-numeric: tabular-nums;
 }
 .nav-item.active .nav-pct {
-    background: var(--v-primary-light);
     color: var(--v-primary);
 }
 
 /* 内嵌小能量条 */
 .nav-mini-bar {
     width: 100%;
-    height: 4px;
-    background: #E2E8F0;
+    height: 3px;
+    background: #EDF1F6;
     border-radius: 999px;
     overflow: hidden;
 }
@@ -231,13 +249,18 @@ html, body {
     width: 0%;
     background: var(--v-primary);
     border-radius: 999px;
-    transition: width 0.4s ease;
+    transition: width .45s cubic-bezier(.4, 0, .2, 1);
 }
 
 .sidebar-spacer { flex: 1; }
 
 .sidebar-btn-add {
-    width: 100%;
+    /* 绝对定位固定在侧栏底部：旧版靠 flex-spacer 推，与 gap 叠加后
+       总高溢出，按钮底边被窗口裁掉一半。 */
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
     height: 36px;
     border-radius: 10px;
     border: 1px dashed #CBD5E1;
@@ -248,7 +271,8 @@ html, body {
     cursor: pointer;
     font-size: 11.5px;
     font-weight: 600;
-    transition: all 0.18s;
+    font-family: inherit;
+    transition: border-color .18s, color .18s, background .18s;
 }
 .sidebar-btn-add:hover {
     border-color: var(--v-primary);
@@ -518,19 +542,21 @@ html, body {
     gap: 4px;
 }
 .batt-num {
-    font-size: 52px;
-    font-weight: 300;
+    font-family: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    font-size: 50px;
+    font-weight: 500;
     color: var(--v-text-title);
     line-height: 1;
-    letter-spacing: -1.5px;
+    letter-spacing: -2px;
     font-variant-numeric: tabular-nums;
 }
 .batt-num .pct {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 600;
     color: var(--v-text-muted);
     letter-spacing: normal;
     margin-left: 3px;
+    vertical-align: 9px;   /* 让 % 与数字视觉对齐，不再掉到基线以下 */
 }
 .batt-num.placeholder {
     color: var(--v-text-faint);
@@ -1011,10 +1037,12 @@ html, body {
                     <img src="dev_keyboard.png" alt="键盘" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%230053e2%22 d=%22M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z%22/></svg>'">
                 </div>
                 <div class="nav-info-wrap">
-                    <span class="nav-label">凌豹 K98</span>
-                    <span class="nav-status-sub" id="tabStatusK98">2.4G 接收器已连接</span>
+                    <span class="nav-label">凌豹 K98 无线键盘</span>
+                    <span class="nav-meta-row">
+                        <span class="nav-status-sub" id="tabStatusK98">2.4G 已连接</span>
+                        <span class="nav-pct" id="tabPctK98">--</span>
+                    </span>
                 </div>
-                <span class="nav-pct" id="tabPctK98">--</span>
             </div>
             <div class="nav-mini-bar">
                 <div class="nav-mini-fill" id="tabMiniFillK98"></div>
@@ -1028,10 +1056,12 @@ html, body {
                     <img src="dev_mouse.png" alt="鼠标" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%230053e2%22 d=%22M13 1.07V9h7c-.57-4.47-4.14-7.93-7-7.93zM4 15c0 4.42 3.58 8 8 8s8-3.58 8-8v-4H4v4zm7-13.93C8.14 1.07 4.57 4.53 4 9h7V1.07z%22/></svg>'">
                 </div>
                 <div class="nav-info-wrap">
-                    <span class="nav-label">迈从 G3 V2</span>
-                    <span class="nav-status-sub" id="tabStatusG3">待唤醒刷新</span>
+                    <span class="nav-label">迈从 G3 V2 无线鼠标</span>
+                    <span class="nav-meta-row">
+                        <span class="nav-status-sub" id="tabStatusG3">待唤醒刷新</span>
+                        <span class="nav-pct" id="tabPctG3">--</span>
+                    </span>
                 </div>
-                <span class="nav-pct" id="tabPctG3">--</span>
             </div>
             <div class="nav-mini-bar">
                 <div class="nav-mini-fill" id="tabMiniFillG3"></div>
@@ -1280,11 +1310,11 @@ window.updateDeviceStatus = function(devId, payload) {
         if (!payload.online || payload.percent <= 0) {
             statusSub.textContent = isK98 ? '未连接' : '待唤醒刷新';
         } else if (payload.charging) {
-            statusSub.textContent = '⚡ 快速充电中';
+            statusSub.textContent = '正在充电';
         } else if (payload.raw_info === 'Sleeping') {
-            statusSub.textContent = '💤 深度休眠中';
+            statusSub.textContent = '休眠待唤醒';
         } else {
-            statusSub.textContent = '2.4G 接收器已连接';
+            statusSub.textContent = '2.4G 已连接';
         }
     }
 
@@ -1376,7 +1406,19 @@ function renderMetrics(p) {
         if (subEl) subEl.textContent = '基于放电斜率推算';
     }
 
-    setText('metricDischargeRate', p.rate ? p.rate.toFixed(2) : '--');
+    // 放电速率：算不出来时只显示 "--"，并把单位一起藏掉
+    // （旧版会显示成 "-- %/h"，看着像坏掉了，其实是在等足够长的样本）
+    const rateEl = document.getElementById('metricDischargeRate');
+    if (rateEl) {
+        const unitEl = rateEl.nextElementSibling;
+        if (p.rate) {
+            rateEl.textContent = Number(p.rate).toFixed(2);
+            if (unitEl) unitEl.style.display = '';
+        } else {
+            rateEl.textContent = '--';
+            if (unitEl) unitEl.style.display = 'none';
+        }
+    }
     setText('metricFullTime', p.lastFull || '初次记录中');
     setText('metricCycleStatus', p.cycleText || '健康监控中');
     setText('metricSyncTime', p.syncTime || '等待硬件响应');

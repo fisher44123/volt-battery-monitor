@@ -31,6 +31,13 @@ class StatsManager:
     KEEPALIVE_SEC = 600
     # 相邻两条记录间隔超过这个值就视为设备休眠/关机，不计入活跃耗电时长
     MAX_ACTIVE_GAP = 900
+    # 单段掉电超过这个百分点，判定为「读数跳变」而非真实耗电
+    # （典型案例：程序先显示缓存 84%，读到真值 44%，5 分钟"掉"40%，
+    #  旧算法照单全收，算出 489%/h 的荒唐速率）
+    MAX_SEGMENT_DROP = 5
+    # 至少要累计这么久的活跃放电样本才肯给速率（30 分钟）。
+    # 键盘正常耗电约 1%/h，10 分钟样本根本不足以支撑一个可信数字。
+    MIN_ACTIVE_SEC = 1800
 
     def __init__(self, db_path: str = DB_FILE):
         self.db_path = db_path
@@ -130,6 +137,9 @@ class StatsManager:
 
     def record_status(self, status: BatteryStatus):
         if not status.is_valid:
+            return
+        # 缓存值不是硬件实时读数，绝不能进历史库 —— 否则会污染放电速率曲线
+        if "Cached" in (getattr(status, "raw_info", "") or ""):
             return
 
         now = status.timestamp
@@ -240,22 +250,27 @@ class StatsManager:
     def _walk_discharge(records: List[Tuple[float, int, bool]]) -> Tuple[float, int]:
         """遍历记录累计「活跃放电秒数」与「掉的百分点」。
 
-        只统计非充电状态、且相邻两点间隔不超过 MAX_ACTIVE_GAP 的连续区间
-        （间隔过大说明设备休眠/关机，不能计入耗电时长）。
+        三条过滤规则，缺一条速率就会被脏数据带飞：
+          1. 只统计非充电区间（c_prev / c_curr 都为假）
+          2. 相邻间隔 <= MAX_ACTIVE_GAP，过长说明设备休眠/关机
+          3. 单段掉电 <= MAX_SEGMENT_DROP，超过说明是读数跳变而非真实耗电
         """
         active_seconds = 0.0
         drop = 0
         max_gap = StatsManager.MAX_ACTIVE_GAP
+        max_dp = StatsManager.MAX_SEGMENT_DROP
         for i in range(1, len(records)):
             t_prev, p_prev, c_prev = records[i - 1]
             t_curr, p_curr, c_curr = records[i]
-            if not c_prev and not c_curr:
-                dt = t_curr - t_prev
-                if 0 < dt <= max_gap:
-                    dp = p_prev - p_curr
-                    if dp >= 0:
-                        active_seconds += dt
-                        drop += dp
+            if c_prev or c_curr:
+                continue
+            dt = t_curr - t_prev
+            if not (0 < dt <= max_gap):
+                continue
+            dp = p_prev - p_curr
+            if 0 <= dp <= max_dp:
+                active_seconds += dt
+                drop += dp
         return active_seconds, drop
 
     def get_discharge_state(self, device_id: str, hours_window: int = 48) -> Dict:
@@ -274,9 +289,10 @@ class StatsManager:
 
         if len(records) < 2:
             state = "no_data"
-        elif drop > 0 and active_seconds >= 600:
+        elif drop >= 2 and active_seconds >= self.MIN_ACTIVE_SEC:
+            # 样本够长 + 至少掉 2% 才敢给速率（1% 的读数抖动推不出可信数字）
             state = "ok"
-        elif active_seconds >= 600:
+        elif active_seconds >= self.MIN_ACTIVE_SEC:
             state = "stable"       # 活跃时长达标，但电量还没掉
         else:
             state = "collecting"   # 采集时长不足
