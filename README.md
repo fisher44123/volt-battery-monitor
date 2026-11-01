@@ -7,6 +7,10 @@
 读取 2.4G 无线键盘 / 鼠标的**真实硬件电量**（不是估算，不是系统给的模糊档位），
 常驻托盘显示，带历史曲线、续航估算与低电量提醒。
 
+> Read the **real hardware battery level** of your 2.4G wireless keyboard & mouse on Windows —
+> queried directly through vendor-specific HID protocols, with a tray popup, history chart
+> and runtime estimates. No cloud, no telemetry. 界面为中文。
+
 <p align="center">
   <img src="docs/screenshots/dashboard.png" width="720" alt="Volt 控制中心">
 </p>
@@ -41,7 +45,7 @@
 **方式二：源码运行**
 
 ```bat
-git clone https://github.com/<you>/volt-battery-monitor.git
+git clone https://github.com/fisher44123/volt-battery-monitor.git
 cd volt-battery-monitor
 pip install -r requirements.txt
 python main.py
