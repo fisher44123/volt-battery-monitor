@@ -241,9 +241,45 @@ class DeviceEngine:
 
     # ──────────────────────── 设备配置 ────────────────────────
 
+    @staticmethod
+    def _sync_builtin_configs():
+        """把打包内置的官方设备配置同步到可写目录。
+
+        旧逻辑只在「DEVICES_DIR 完全没有配置文件」时复制一次，结果重新打包后
+        dist/devices 里还是上一版的 lingbao_k98.json，新增的身份校验字段
+        永远不生效。现在每次启动按 id 对齐覆盖三份官方配置，用户自建的
+        其它 JSON 一律不动；打包后 RESOURCE_DIR 是 _MEIPASS，
+        开发模式下 src 与 DEVICES_DIR 是同一目录，直接跳过。
+        """
+        import shutil
+        src = os.path.join(RESOURCE_DIR, "devices")
+        if not os.path.isdir(src) or os.path.abspath(src) == os.path.abspath(DEVICES_DIR):
+            return
+        os.makedirs(DEVICES_DIR, exist_ok=True)
+        for fname in ("lingbao_k98.json", "mchose_g3v2.json", "template.json"):
+            s, d = os.path.join(src, fname), os.path.join(DEVICES_DIR, fname)
+            if not os.path.exists(s):
+                continue
+            try:
+                if os.path.exists(d):
+                    with open(s, "r", encoding="utf-8") as f:
+                        builtin = json.load(f)
+                    with open(d, "r", encoding="utf-8") as f:
+                        current = json.load(f)
+                    if builtin == current:
+                        continue
+                    # 用户把这个文件改成自己的设备了 -> 不覆盖
+                    if builtin.get("id") and current.get("id") != builtin.get("id"):
+                        continue
+                shutil.copy2(s, d)
+                print(f"[Engine] 已同步内置设备配置 {fname}")
+            except Exception as e:
+                print(f"[Engine] 同步 {fname} 失败: {e}")
+
     def load_device_configs(self):
         """扫描 devices/ 目录，加载所有启用的外设配置。
         若 BASE_DIR/devices 为空则从 RESOURCE_DIR/devices 回退复制。"""
+        self._sync_builtin_configs()
         with self._lock:
             self.devices_config.clear()
 
