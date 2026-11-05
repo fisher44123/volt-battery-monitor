@@ -330,6 +330,16 @@ class DeviceEngine:
                           bus_devices: List[Dict]) -> Tuple[Optional[bytes], int]:
         """
         在总线设备中选择供应商专有 HID 集合。
+
+        身份校验（2026-11-05 加严）：
+        同一 VID/PID 会被多家厂商的不同接收器复用。实测本机 3554:FA09
+        同时挂着 FF02:0002（凌豹 Compx 电量）与 FF04:0002（另一套 MCHOSE
+        键盘协议，20 字节 ID 13）；3837:4245 也同时有 FF01:0010、FF05/FF06
+        等多个私有集合。旧实现只要 VID/PID 相同就给 1 分兜底选中，会把
+        凌豹的查询命令发到身份不明的集合上。
+        现在：配置了 usage_page+usage 时，默认只接受精确匹配（100 分），
+        并且 product_names 白名单（若配置）必须命中，否则一律不选、不发命令。
+
         评分：UsagePage+Usage 精确匹配 = 100；
               路径含 collection_hint（如 col09）= 60；
               仅 VID/PID 匹配 = 1。
@@ -347,15 +357,28 @@ class DeviceEngine:
             want_u = int(str(cfg.get("usage")), 16)
 
         col_hint = cfg.get("collection_hint")  # 例如 "col09"
+        allowed_names = [str(n).strip().lower()
+                         for n in (cfg.get("product_names") or []) if str(n).strip()]
+        # 配了 usage 就必须精确命中；想退回旧宽松行为须在设备 JSON 里显式关掉
+        exact_required = (want_up is not None and want_u is not None
+                          and bool(cfg.get("require_exact_usage", True)))
 
         best_path: Optional[bytes] = None
         best_score = -1
+        rejected_name = 0
+        rejected_usage = 0
 
         for d in bus_devices:
             if d.get("vendor_id") != target_vid:
                 continue
             if target_pids and d.get("product_id") not in target_pids:
                 continue
+
+            if allowed_names:
+                dev_name = str(d.get("product_string") or "").strip().lower()
+                if dev_name not in allowed_names:
+                    rejected_name += 1
+                    continue
 
             score = 1
             if (want_up is not None and want_u is not None
@@ -366,9 +389,17 @@ class DeviceEngine:
                 if str(col_hint).lower() in low:
                     score = max(score, 60)
 
+            if exact_required and score != 100:
+                rejected_usage += 1
+                continue
+
             if score > best_score:
                 best_score = score
                 best_path = d.get("path")
+
+        if best_path is None and (rejected_name or rejected_usage):
+            print(f"[Engine] {cfg.get('id', '?')} 身份校验未通过，拒绝发送任何厂商命令"
+                  f"（产品名不符 {rejected_name} 项 / 集合不符 {rejected_usage} 项）")
 
         return best_path, best_score
 

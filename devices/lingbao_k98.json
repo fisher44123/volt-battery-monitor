@@ -11,5 +11,9 @@
   "protocol": "compx",
   "poll_interval": 30,
   "enabled": true,
+  "product_names": ["2.4G Wireless Receiver"],
+  "require_exact_usage": true,
+  "evidence_level": "A",
+  "evidence_note": "本机多次实机读数校验（2026-10-29 84%、11-01 43%、11-02 28%），FF02:0002 集合精确命中。注意 3554:FA09 被多家厂商接收器复用，且同一接收器另有 FF04:0002 集合，勿放宽匹配。",
   "description": "凌豹 K98 三模机械键盘（Compx 2.4G 接收器方案，电量走 Col01 输出报告查询 0x13 电量帧，byte[6] 为百分比，蓝牙真值已校验）"
 }

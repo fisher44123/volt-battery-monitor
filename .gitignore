@@ -19,6 +19,7 @@ data/volt.log.*
 data/battery_cache.json
 data/battery_cache.json.tmp
 data/settings.json
+data/diagnostics-*.txt
 
 # ── 归档区：历史调研残留，保留在本地但不入库 ──
 _archive/
