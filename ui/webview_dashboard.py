@@ -254,14 +254,18 @@ class WebViewDashboardFrame(wx.Frame):
                 "history": history_pts,
                 "autoStart": bool(config.get("auto_start", False)),
                 "raw_info": raw_info,
-                # 缓存值 / 超 90 秒的历史读数：界面灰显，不冒充实时
-                "stale": not getattr(st, "is_trustworthy", True),
+                # stale（缓存值/超 90 秒历史读数）在下方签名处统一计算后写入
             }
 
-            # 签名只包含"内容"，不含相对时间文案
+            # 签名只包含"内容"，不含相对时间文案。stale 必须进签名：
+            # 数值不变但读数超过 90 秒变陈旧（如睡眠唤醒后时间跳变）时，
+            # stale 从 false 翻转为 true，若不进签名这条推送会被去重吞掉，
+            # 主界面永远收不到灰显指令。
+            stale = not getattr(st, "is_trustworthy", True)
             sig = (st.percent, st.charging, st.online, raw_info,
                    snap["rate"], snap["lastFull"], snap["cycleText"],
-                   len(history_pts))
+                   len(history_pts), stale)
+            payload["stale"] = stale
             if not force and self._last_sig.get(dev_id) == sig:
                 continue
             self._last_sig[dev_id] = sig

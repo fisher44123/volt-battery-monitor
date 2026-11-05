@@ -145,6 +145,7 @@ class TrayCardPopup(wx.Frame):
             online = bool(getattr(st, "online", False))
             charging = bool(getattr(st, "charging", False))
             # 缓存值 / 超 90 秒的历史读数用灰色，不冒充当前在线
+            # （置灰只通过 tone 传导到 _paint_row，不单独存 muted 标记）
             muted = not getattr(st, "is_trustworthy", True)
             self._rows.append({
                 "name": getattr(st, "device_name", "未知外设"),
@@ -153,7 +154,6 @@ class TrayCardPopup(wx.Frame):
                 "charging": charging,
                 "flag": _flag_text(st),
                 "tone": TEXT_FAINT if muted else _tone(online, pct, charging),
-                "muted": muted,
             })
         if not self._rows:
             self._rows.append({
