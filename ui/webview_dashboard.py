@@ -254,6 +254,8 @@ class WebViewDashboardFrame(wx.Frame):
                 "history": history_pts,
                 "autoStart": bool(config.get("auto_start", False)),
                 "raw_info": raw_info,
+                # 缓存值 / 超 90 秒的历史读数：界面灰显，不冒充实时
+                "stale": not getattr(st, "is_trustworthy", True),
             }
 
             # 签名只包含"内容"，不含相对时间文案

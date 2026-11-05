@@ -562,6 +562,10 @@ body, .nav-pct, .metric-value, .batt-num, .hero-batt-num {
     color: var(--v-text-faint);
     font-weight: 400;
 }
+/* 历史读数：灰显但不隐藏，避免把缓存/陈旧值当成实时硬件读数 */
+.batt-num.stale {
+    color: var(--v-text-faint);
+}
 
 /* 现代圆角充能能量条 (含呼吸流光微动效) */
 .batt-bar-track {
@@ -1309,6 +1313,8 @@ window.updateDeviceStatus = function(devId, payload) {
     if (statusSub) {
         if (!payload.online || payload.percent <= 0) {
             statusSub.textContent = isK98 ? '未连接' : '待唤醒刷新';
+        } else if (payload.stale) {
+            statusSub.textContent = '历史读数 · 待刷新';
         } else if (payload.charging) {
             statusSub.textContent = '正在充电';
         } else if (payload.raw_info === 'Sleeping') {
@@ -1375,6 +1381,7 @@ function renderHero(p) {
         const hasVal = (p.online && p.percent > 0);
         numEl.innerHTML = hasVal ? `${p.percent}<span class="pct">%</span>` : '--';
         numEl.classList.toggle('placeholder', !hasVal);
+        numEl.classList.toggle('stale', hasVal && !!p.stale);
     }
 
     // 充能进度柱 (heroStripFill)
@@ -1421,7 +1428,7 @@ function renderMetrics(p) {
     }
     setText('metricFullTime', p.lastFull || '初次记录中');
     setText('metricCycleStatus', p.cycleText || '健康监控中');
-    setText('metricSyncTime', p.syncTime || '等待硬件响应');
+    setText('metricSyncTime', (p.syncTime || '等待硬件响应') + (p.stale ? ' · 历史读数' : ''));
 }
 
 function setText(id, txt) {

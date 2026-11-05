@@ -13,6 +13,7 @@
 """
 import time
 import ctypes
+import ctypes.wintypes as wt
 from typing import Dict, Callable, Optional
 
 import wx
@@ -38,6 +39,36 @@ OK_GREEN     = wx.Colour(0x05, 0x96, 0x69)
 
 FONT_FACE = "Microsoft YaHei UI"
 NUM_FACE = "Segoe UI"
+
+
+def _taskbar_geometry():
+    """用 Windows AppBar API 拿到真实任务栏位置、边位与自动隐藏状态。
+
+    吸收自 myfinder-device-battery 的 issue #61：任务栏设为「自动隐藏」时，
+    只用 wx.Display.GetClientArea() 算位置会让面板底栏被任务栏压住。
+    返回 (edge, left, top, right, bottom, autohide)，失败返回 None。
+    """
+    class APPBARDATA(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wt.DWORD), ("hWnd", wt.HWND),
+            ("uCallbackMessage", wt.UINT), ("uEdge", wt.UINT),
+            ("rc", wt.RECT), ("lParam", ctypes.c_ssize_t),
+        ]
+
+    try:
+        shell32 = ctypes.windll.shell32
+        shell32.SHAppBarMessage.argtypes = [wt.DWORD, ctypes.POINTER(APPBARDATA)]
+        shell32.SHAppBarMessage.restype = ctypes.c_ssize_t
+        abd = APPBARDATA()
+        abd.cbSize = ctypes.sizeof(abd)
+        ABM_GETSTATE, ABM_GETTASKBARPOS, ABS_AUTOHIDE = 4, 5, 0x1
+        if not shell32.SHAppBarMessage(ABM_GETTASKBARPOS, ctypes.byref(abd)):
+            return None
+        state = shell32.SHAppBarMessage(ABM_GETSTATE, ctypes.byref(abd))
+        r = abd.rc
+        return (abd.uEdge, r.left, r.top, r.right, r.bottom, bool(state & ABS_AUTOHIDE))
+    except Exception:
+        return None
 
 
 def _tone(online: bool, pct: int, charging: bool) -> wx.Colour:
@@ -113,13 +144,16 @@ class TrayCardPopup(wx.Frame):
             pct = int(getattr(st, "percent", -1))
             online = bool(getattr(st, "online", False))
             charging = bool(getattr(st, "charging", False))
+            # 缓存值 / 超 90 秒的历史读数用灰色，不冒充当前在线
+            muted = not getattr(st, "is_trustworthy", True)
             self._rows.append({
                 "name": getattr(st, "device_name", "未知外设"),
                 "pct": pct,
                 "online": online,
                 "charging": charging,
                 "flag": _flag_text(st),
-                "tone": _tone(online, pct, charging),
+                "tone": TEXT_FAINT if muted else _tone(online, pct, charging),
+                "muted": muted,
             })
         if not self._rows:
             self._rows.append({
@@ -344,6 +378,34 @@ class TrayCardPopup(wx.Frame):
         w, h = self.GetSize()
         disp = wx.Display.GetFromPoint((mx, my))
         rect = wx.Display(disp if disp != wx.NOT_FOUND else 0).GetClientArea()
+        margin = 8
+
+        tb = _taskbar_geometry()
+        if tb:
+            edge, l, t, r, b, autohide = tb
+            # ABE_LEFT=0 / TOP=1 / RIGHT=2 / BOTTOM=3
+            if autohide:
+                # 自动隐藏时工作区包含原任务栏区域，贴工作区边缘并留 8px，
+                # 避免卡片压到弹出时的任务栏（对方 issue #61 的坑）
+                x = (rect.x + margin if edge == 0
+                     else rect.x + rect.width - w - margin)
+                y = (rect.y + margin if edge == 1
+                     else rect.y + rect.height - h - margin)
+            elif edge == 3:       # 底部
+                x, y = r - w - margin, t - h - margin
+            elif edge == 1:       # 顶部
+                x, y = r - w - margin, b + margin
+            elif edge == 0:       # 左侧
+                x, y = r + margin, rect.y + rect.height - h - margin
+            else:                 # 右侧
+                x, y = l - w - margin, rect.y + rect.height - h - margin
+
+            x = max(rect.x + margin, min(x, rect.x + rect.width - w - margin))
+            y = max(rect.y + margin, min(y, rect.y + rect.height - h - margin))
+            self.Move(x, y)
+            return
+
+        # 兜底：拿不到 AppBar 信息时用光标左上方
         x = mx - w + 8
         y = my - h - 8
         x = max(rect.x + 8, min(x, rect.x + rect.width - w - 8))

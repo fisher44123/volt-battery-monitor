@@ -21,6 +21,10 @@ def _path_to_str(path) -> str:
     return str(path)
 
 
+# 设备一动就补读一次电量的最小间隔（秒）
+ACTIVITY_RECHECK_SEC = 8
+
+
 def _is_reportable(st: Optional[BatteryStatus]) -> bool:
     """这条状态值不值得推给界面。
 
@@ -103,6 +107,7 @@ class DeviceListener:
 
             base_poll_interval = self.protocol.poll_interval(self.cfg)
             last_poll = 0.0
+            last_activity_poll = 0.0
             read_len = self.protocol.read_length(self.cfg)
             synced = False
 
@@ -144,6 +149,30 @@ class DeviceListener:
                         break
                     if not buf:
                         continue
+
+                    # 活动补读：HID 输入报告只在设备真的有动作时到达，
+                    # 所以收到任意报告就趁机查一次电量（8 秒节流，且不与定时
+                    # 轮询撞车）。休眠醒来晃动鼠标时能立刻刷新，不必干等
+                    # 15/30 秒的固定周期。吸收自 myfinder 的 USB 活动补读。
+                    act_now = time.time()
+                    if (synced
+                            and act_now - last_activity_poll >= ACTIVITY_RECHECK_SEC
+                            and act_now - last_poll >= 2.0):
+                        last_activity_poll = act_now
+                        last_poll = act_now
+                        try:
+                            act_st = self.protocol.poll_battery(h, self.cfg)
+                        except Exception:
+                            act_st = None
+                        act_cached = (act_st is not None
+                                      and "Cached" in (getattr(act_st, "raw_info", "") or ""))
+                        if act_st is not None and act_st.percent > 0 and not act_cached:
+                            print(f"[Listener:{self.dev_id}] 活动补读: {act_st.percent}%", flush=True)
+                            try:
+                                self._status_callback(self.dev_id, act_st)
+                            except Exception:
+                                pass
+
                     try:
                         st = self.protocol.parse_packet(buf, self.cfg)
                     except Exception as e:

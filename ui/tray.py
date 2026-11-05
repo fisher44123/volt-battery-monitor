@@ -5,6 +5,7 @@
 - 右键菜单：原生 wx.Menu（设备状态区 + 操作区 + 退出）
 """
 import os
+import json
 import time
 import subprocess
 import wx
@@ -15,7 +16,7 @@ from core.engine import DeviceEngine
 from core.stats import stats_manager
 from ui.icons import create_wx_icon, create_dual_wx_icon
 from ui.osd import osd_manager
-from config import config
+from config import config, DATA_DIR
 
 # ─────────────────────────────────────────────────────────────────────
 # MCHOSE HUB 进程检测
@@ -95,7 +96,8 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
         super().__init__()
         self.engine = engine
         self._popup = None
-        self._prev_status_records = {}
+        self._alert_state_file = os.path.join(DATA_DIR, "alert_state.json")
+        self._prev_status_records = self._load_alert_state()
         self._icon_sig = None      # 上次图标签名，内容没变就不必重绘重设
 
         # 左键单击 / 双击：直接唤出/聚焦控制中心面板
@@ -103,10 +105,27 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
         self.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, self.on_left_click)
         # 右键：弹浅色状态卡片（AGENTS.md 硬约束第 5 条）。
         # 这里必须显式 Bind —— 旧代码只写了 on_right_click 却从未绑定，
-        # 导致精心绘制的 TrayCardPopup 变成永远走不到的死代码，
-        # 实际弹出来的是 wx 默认的 CreatePopupMenu 原生菜单。
-        # 绑定后 ProcessEvent 返回 True，wx 就不会再弹默认菜单。
+        # 导致精心绘制的 TrayCardPopup 变成永远走不到的死代码。
+        # 绑定后 wx 不再弹 CreatePopupMenu。
         self.Bind(wx.adv.EVT_TASKBAR_RIGHT_UP, self.on_right_click)
+
+    def _load_alert_state(self):
+        """低电量提醒状态落盘：避免每次重启程序都重新跌破阈值、重复弹一次。"""
+        try:
+            with open(self._alert_state_file, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            return {k: (int(v[0]), bool(v[1])) for k, v in raw.items()
+                    if isinstance(v, (list, tuple)) and len(v) == 2}
+        except Exception:
+            return {}
+
+    def _save_alert_state(self):
+        try:
+            os.makedirs(os.path.dirname(self._alert_state_file), exist_ok=True)
+            with open(self._alert_state_file, "w", encoding="utf-8") as f:
+                json.dump(self._prev_status_records, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
     def CreatePopupMenu(self):
         """右键原生上下文菜单（满足用户在右下角直接退出的核心习惯，100% 可见可靠）"""
@@ -226,7 +245,9 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
 
         # 1. 状态跃迁检测：插上充电器 / 拔出充满 / 低电量跌破警戒线时弹 OSD 胶囊
         for dev_id, s in all_statuses.items():
-            if not s or not s.online or s.percent <= 0:
+            # 缓存值、超 90 秒的历史读数、离线值都不参与状态跃迁判定，
+            # 否则一次陈旧读数会造成"插电/低电量"误报
+            if not s or not getattr(s, "is_trustworthy", True):
                 continue
             prev = self._prev_status_records.get(dev_id)
             if prev is not None:
@@ -242,7 +263,10 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
                         (prev_pct > warn_at >= s.percent) or
                         (prev_pct > crit_at >= s.percent)):
                     self._safe_osd(all_statuses)
+            old = self._prev_status_records.get(dev_id)
             self._prev_status_records[dev_id] = (s.percent, s.charging)
+            if old != (s.percent, s.charging):
+                self._save_alert_state()
 
         # 2. 图标按内容签名缓存：电量/充电/在线/休眠都没变就不重绘重设
         #    （旧实现每次状态回调都重新跑一遍 PIL 并 SetIcon，任务栏图标会闪）
@@ -266,7 +290,8 @@ class RapooStyleTrayIcon(wx.adv.TaskBarIcon):
             pct_str = f"{s.percent}%" if s.percent > 0 else "待同步"
             chg_str = " (⚡充电中)" if s.charging else ""
             sleep_str = " (💤休眠中)" if getattr(s, "raw_info", "") == "Sleeping" else ""
-            lines.append(f"[{icon_tag}] {s.device_name}: {pct_str}{chg_str}{sleep_str}")
+            stale_str = "" if getattr(s, "is_trustworthy", True) else " (历史读数)"
+            lines.append(f"[{icon_tag}] {s.device_name}: {pct_str}{chg_str}{sleep_str}{stale_str}")
         tip = "\n".join(lines)
 
         if len(tip) > 120:

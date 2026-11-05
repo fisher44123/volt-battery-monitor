@@ -25,6 +25,9 @@
 - **历史曲线与续航估算**：SQLite 本地落库，按实际耗电斜率动态校准剩余时长
 - **低电量 / 充电提醒**：跌破预警线、插电、充满时弹出屏幕悬浮条
 - **异常态诚实标注**：设备休眠、缓存读数、样本不足时明确标示，绝不编造数值
+- **90 秒新鲜度**：超期读数在主界面灰显「历史读数」，托盘图标转灰，且不触发低电量提醒
+- **活动补读**：鼠标/键盘一动就趁机查一次电量（8 秒节流），休眠唤醒不用干等固定轮询周期
+- **贴任务栏定位**：托盘卡片用 Windows AppBar 信息定位，任务栏在四边或设为自动隐藏时都不被遮挡
 - **添加新外设向导**：内置 HID 嗅探，自动推断电量字节偏移
 
 ## 当前支持的设备
@@ -38,7 +41,8 @@
 等级只说明验证范围，不代表同品牌全系列可用 —— 同一个 `3554:FA09` 可能被多家厂商的接收器复用，
 本项目按「VID/PID + UsagePage/Usage + 产品名」三重精确匹配，身份不符时**不发送任何厂商查询命令**。
 
-其它设备可尝试内置嗅探向导，协议实测记录见 [docs/protocols.md](docs/protocols.md)。
+完整兼容表（由 `devices/*.json` 自动生成，不会与代码脱节）见 [docs/compatibility.md](docs/compatibility.md)，
+各协议的查询帧与解析细节见 [docs/protocols.md](docs/protocols.md)。
 
 ## 下载使用
 
@@ -80,6 +84,16 @@ C://Python313//python.exe scripts\export_diagnostics.py
 报告会写到 `data\diagnostics-<时间戳>.txt`，包含：所有相关 HID 接口的 VID/PID / 产品名 /
 UsagePage / Usage / 接口号、当前设备配置与证据等级、最后已知电量、最近 60 行日志
 （本机用户名路径已自动脱敏）。把它贴到 [Issues](../../issues) 里，比一句「读不到」有用得多。
+
+## 添加新设备
+
+```bat
+copy devices\template.json devices\<型号>.json
+:: 填好 VID/PID、UsagePage/Usage、产品名、协议后：
+C://Python313//python.exe scripts\validate_devices.py --write-docs
+```
+
+脚本会校验字段格式、ID 与文件名一致性、身份冲突，并自动刷新兼容表；校验失败退出码为 1。
 
 ## 从源码打包
 

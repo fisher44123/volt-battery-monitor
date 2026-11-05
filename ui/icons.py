@@ -228,6 +228,8 @@ def create_dual_device_tray_image(
         bx1 = bx0 + col_w
 
         online = bool(st and st.online and st.percent >= 0)
+        # 缓存值 / 超 90 秒的历史读数一律用灰色填充（保留比例，不冒充当前在线）
+        trustworthy = bool(st and getattr(st, "is_trustworthy", online))
         percent = st.percent if (st and st.percent >= 0) else -1
         charging = bool(st and st.charging)
 
@@ -235,6 +237,9 @@ def create_dual_device_tray_image(
         if not online or percent < 0:
             c_fill = (130, 138, 150, 180)
             fill_ratio = 0.0
+        elif not trustworthy:
+            c_fill = (130, 138, 150, 180)
+            fill_ratio = max(0.10, percent / 100.0)
         elif charging:
             c_fill = (0, 160, 255, 255)
             fill_ratio = max(0.12, percent / 100.0)
